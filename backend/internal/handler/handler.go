@@ -646,6 +646,40 @@ func (h *Handler) SuspendBusiness(c *gin.Context) {
 
 // --- Helpers ---
 
+func (h *Handler) ServePhoto(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid photo id"})
+		return
+	}
+
+	photo, err := h.services.Photo.GetByID(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "photo not found"})
+		return
+	}
+
+	fullPath := h.services.GetStorage().GetFullPath(photo.StoragePath)
+	c.File(fullPath)
+}
+
+func (h *Handler) ServeThumbnail(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid photo id"})
+		return
+	}
+
+	photo, err := h.services.Photo.GetByID(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "photo not found"})
+		return
+	}
+
+	fullPath := h.services.GetStorage().GetFullPath(photo.ThumbnailPath)
+	c.File(fullPath)
+}
+
 func generateSlug(name string) string {
 	result := ""
 	for _, c := range name {

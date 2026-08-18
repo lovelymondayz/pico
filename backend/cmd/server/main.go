@@ -61,6 +61,9 @@ func main() {
 	// Rate limiting
 	rateLimit := middleware.NewRateLimiter(cfg.RateLimitRequests, cfg.RateLimitWindow)
 
+	// Static file serving for photos
+	router.Static("/photos", cfg.StoragePath)
+
 	// Public routes
 	public := router.Group("/api")
 	{
@@ -73,6 +76,10 @@ func main() {
 		public.POST("/e/:slug/upload", rateLimit.Limit(), h.UploadPhoto)
 		public.GET("/e/:slug/photos/:id", h.GetPhoto)
 	}
+
+	// Photo serving
+	router.GET("/photos/:id", h.ServePhoto)
+	router.GET("/photos/:id/thumb", h.ServeThumbnail)
 
 	// Business routes (JWT required)
 	business := router.Group("/api/business")

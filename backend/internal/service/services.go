@@ -45,6 +45,10 @@ func NewServices(repo *repository.Repositories, store storage.Storage, imageProc
 	return s
 }
 
+func (s *Services) GetStorage() storage.Storage {
+	return s.storage
+}
+
 // Auth helper methods
 func (s *Services) GetUserByEmail(ctx context.Context, email string) (*model.User, error) {
 	return s.repo.Users.GetByEmail(ctx, email)
