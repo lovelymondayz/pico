@@ -16,7 +16,7 @@ WORKDIR /app
 RUN apk add --no-cache ca-certificates
 
 COPY --from=builder /app/server .
-COPY migrations/ ./migrations/
+COPY internal/repository/migrations/ ./migrations/
 
 RUN mkdir -p /data/photos
 
