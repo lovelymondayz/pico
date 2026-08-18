@@ -11,7 +11,7 @@ services:
     volumes:
       - pico-db-data:/var/lib/postgresql/data
     ports:
-      - "5435:5432"
+      - "5436:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U pico"]
       interval: 10s
@@ -38,7 +38,7 @@ services:
     volumes:
       - pico-photos:/data/photos
     ports:
-      - "8082:8082"
+      - "8085:8082"
     depends_on:
       postgres:
         condition: service_healthy
@@ -50,7 +50,7 @@ services:
       dockerfile: Dockerfile
     container_name: pico-frontend
     ports:
-      - "3003:80"
+      - "3005:80"
     depends_on:
       - backend
     restart: unless-stopped
