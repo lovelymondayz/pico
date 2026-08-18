@@ -1,13 +1,61 @@
 #!/bin/bash
+# Manual update script — pull latest, rebuild, recreate containers
+# Usage: ./update.sh [--force]
+# Prerequisite: git push origin main (run this AFTER pushing)
+#
+# This script:
+# 1. Fetches latest from git
+# 2. Builds Docker images (--no-cache = fresh build)
+# 3. Recreates containers (--force-recreate = new containers from latest image)
+#
+# IMPORTANT: Always use this instead of "docker compose restart"
+# because restart keeps old containers running with stale images.
+
 set -e
 
-cd /root/pico
+PROJECT_DIR="/root/pico"
+COMPOSE="docker compose"
 
-echo ">>> Pulling latest code..."
-git pull origin main
+cd "$PROJECT_DIR"
 
-echo ">>> Rebuilding Docker containers..."
-docker compose build --no-cache && docker compose up -d --force-recreate
+echo "📡 Checking for updates..."
+git fetch origin main 2>/dev/null
 
-echo ">>> Done! Pico is live."
-docker compose ps
+LOCAL=$(git rev-parse main 2>/dev/null)
+REMOTE=$(git rev-parse origin/main 2>/dev/null)
+
+if [ "$LOCAL" = "$REMOTE" ] && [ "$1" != "--force" ]; then
+    echo "✅ Already up to date ($LOCAL)"
+    echo ""
+    echo "Services:"
+    $COMPOSE ps 2>/dev/null
+    exit 0
+fi
+
+if [ "$LOCAL" = "$REMOTE" ] && [ "$1" = "--force" ]; then
+    echo "🔄 Forced rebuild ($LOCAL)"
+else
+    echo "🔄 Update: $LOCAL → $REMOTE"
+    git pull origin main
+fi
+
+echo "🔨 Building..."
+$COMPOSE build --no-cache
+
+echo "🚀 Recreating with latest image..."
+$COMPOSE up -d --force-recreate
+
+echo "⏳ Waiting for services..."
+sleep 5
+
+echo ""
+echo "📊 Status:"
+$COMPOSE ps
+
+echo ""
+echo "🏥 Health:"
+echo "  Backend: $(curl -s -o /dev/null -w '%{http_code}' http://localhost:8085/api/e/test 2>/dev/null || echo 'DOWN')"
+echo "  Frontend: $(curl -s -o /dev/null -w '%{http_code}' http://localhost:3005 2>/dev/null || echo 'DOWN')"
+
+echo ""
+echo "✅ Done!"
