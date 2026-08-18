@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: pico-postgres
+    environment:
+      POSTGRES_DB: pico
+      POSTGRES_USER: pico
+      POSTGRES_PASSWORD: pico
+    volumes:
+      - pico-db-data:/var/lib/postgresql/data
+    ports:
+      - "5435:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pico"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: pico-backend
+    environment:
+      PORT: 8082
+      DATABASE_URL: postgres://pico:pico@postgres:5432/pico?sslmode=disable
+      JWT_SECRET: ${JWT_SECRET:-pico-secret-change-in-production}
+      STORAGE_PATH: /data/photos
+      MAX_UPLOAD_BYTES: ${MAX_UPLOAD_BYTES:-5242880}
+      IMAGE_MAX_WIDTH: ${IMAGE_MAX_WIDTH:-1200}
+      IMAGE_QUALITY: ${IMAGE_QUALITY:-70}
+      THUMBNAIL_WIDTH: ${THUMBNAIL_WIDTH:-300}
+      GUEST_TOKEN_EXPIRY_DAYS: ${GUEST_TOKEN_EXPIRY_DAYS:-30}
+      RATE_LIMIT_REQUESTS: ${RATE_LIMIT_REQUESTS:-10}
+      RATE_LIMIT_WINDOW_SECONDS: ${RATE_LIMIT_WINDOW_SECONDS:-60}
+    volumes:
+      - pico-photos:/data/photos
+    ports:
+      - "8082:8082"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: pico-frontend
+    ports:
+      - "3003:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  pico-db-data:
+  pico-photos:
