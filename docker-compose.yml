@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:15-alpine
@@ -17,6 +15,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - pico-net
 
   backend:
     build:
@@ -25,7 +25,7 @@ services:
     container_name: pico-backend
     environment:
       PORT: 8082
-      DATABASE_URL: postgres://pico:pico@postgres:5432/pico?sslmode=disable
+      DATABASE_URL: postgres://pico:pico@pico-postgres:5432/pico?sslmode=disable
       JWT_SECRET: ${JWT_SECRET:-pico-secret-change-in-production}
       STORAGE_PATH: /data/photos
       MAX_UPLOAD_BYTES: ${MAX_UPLOAD_BYTES:-5242880}
@@ -38,10 +38,12 @@ services:
     volumes:
       - pico-photos:/data/photos
     ports:
-      - "8085:8082"
+      - "8088:8082"
     depends_on:
       postgres:
         condition: service_healthy
+    networks:
+      - pico-net
     restart: unless-stopped
 
   frontend:
@@ -53,8 +55,14 @@ services:
       - "3005:80"
     depends_on:
       - backend
+    networks:
+      - pico-net
     restart: unless-stopped
 
 volumes:
   pico-db-data:
   pico-photos:
+
+networks:
+  pico-net:
+    driver: bridge

@@ -61,8 +61,8 @@ func main() {
 	// Rate limiting
 	rateLimit := middleware.NewRateLimiter(cfg.RateLimitRequests, cfg.RateLimitWindow)
 
-	// Static file serving for photos
-	router.Static("/photos", cfg.StoragePath)
+	// Debug endpoint
+	router.GET("/api/debug", h.Debug)
 
 	// Public routes
 	public := router.Group("/api")

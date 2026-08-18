@@ -24,6 +24,13 @@ func New(services *service.Services, cfg *config.Config) *Handler {
 	}
 }
 
+func (h *Handler) Debug(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"status": "ok",
+		"time":   time.Now().UTC(),
+	})
+}
+
 // --- Auth ---
 
 type RegisterRequest struct {
@@ -100,7 +107,7 @@ func (h *Handler) GetEvent(c *gin.Context) {
 	slug := c.Param("slug")
 	event, err := h.services.Event.GetBySlug(c.Request.Context(), slug)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "event not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "event not found", "details": err.Error()})
 		return
 	}
 

@@ -137,7 +137,7 @@ func (r *BusinessRepo) Create(ctx context.Context, userID int64, name, slug stri
 }
 
 func (r *BusinessRepo) GetByID(ctx context.Context, id int64) (*model.Business, error) {
-	query := `SELECT id, user_id, name, slug, logo_url, created_at FROM businesses WHERE id = $1`
+	query := `SELECT id, user_id, name, slug, COALESCE(logo_url, ''), created_at FROM businesses WHERE id = $1`
 	var biz model.Business
 	err := r.db.pool.QueryRow(ctx, query, id).Scan(
 		&biz.ID, &biz.UserID, &biz.Name, &biz.Slug, &biz.LogoURL, &biz.CreatedAt,
@@ -149,7 +149,7 @@ func (r *BusinessRepo) GetByID(ctx context.Context, id int64) (*model.Business, 
 }
 
 func (r *BusinessRepo) GetBySlug(ctx context.Context, slug string) (*model.Business, error) {
-	query := `SELECT id, user_id, name, slug, logo_url, created_at FROM businesses WHERE slug = $1`
+	query := `SELECT id, user_id, name, slug, COALESCE(logo_url, ''), created_at FROM businesses WHERE slug = $1`
 	var biz model.Business
 	err := r.db.pool.QueryRow(ctx, query, slug).Scan(
 		&biz.ID, &biz.UserID, &biz.Name, &biz.Slug, &biz.LogoURL, &biz.CreatedAt,
@@ -161,7 +161,7 @@ func (r *BusinessRepo) GetBySlug(ctx context.Context, slug string) (*model.Busin
 }
 
 func (r *BusinessRepo) GetAll(ctx context.Context, limit, offset int) ([]model.Business, error) {
-	query := `SELECT id, user_id, name, slug, logo_url, created_at FROM businesses ORDER BY created_at DESC LIMIT $1 OFFSET $2`
+	query := `SELECT id, user_id, name, slug, COALESCE(logo_url, ''), created_at FROM businesses ORDER BY created_at DESC LIMIT $1 OFFSET $2`
 	rows, err := r.db.pool.Query(ctx, query, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("fetching businesses: %w", err)
@@ -209,7 +209,7 @@ func (r *PlanRepo) Create(ctx context.Context, plan *model.Plan) (*model.Plan, e
 }
 
 func (r *PlanRepo) GetByID(ctx context.Context, id int64) (*model.Plan, error) {
-	query := `SELECT id, name, max_photos, max_events, photos_per_guest, max_storage_mb, price, features_json, created_at FROM plans WHERE id = $1`
+	query := `SELECT id, name, max_photos, max_events, photos_per_guest, max_storage_mb, price, COALESCE(features_json, '{}'), created_at FROM plans WHERE id = $1`
 	var plan model.Plan
 	err := r.db.pool.QueryRow(ctx, query, id).Scan(
 		&plan.ID, &plan.Name, &plan.MaxPhotos, &plan.MaxEvents, &plan.PhotosPerGuest, &plan.MaxStorageMB, &plan.Price, &plan.FeaturesJSON, &plan.CreatedAt,
@@ -221,7 +221,7 @@ func (r *PlanRepo) GetByID(ctx context.Context, id int64) (*model.Plan, error) {
 }
 
 func (r *PlanRepo) GetAll(ctx context.Context) ([]model.Plan, error) {
-	query := `SELECT id, name, max_photos, max_events, photos_per_guest, max_storage_mb, price, features_json, created_at FROM plans ORDER BY price ASC`
+	query := `SELECT id, name, max_photos, max_events, photos_per_guest, max_storage_mb, price, COALESCE(features_json, '{}'), created_at FROM plans ORDER BY price ASC`
 	rows, err := r.db.pool.Query(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("fetching plans: %w", err)
@@ -298,7 +298,7 @@ func (r *EventRepo) Create(ctx context.Context, event *model.Event) (*model.Even
 }
 
 func (r *EventRepo) GetByID(ctx context.Context, id int64) (*model.Event, error) {
-	query := `SELECT id, business_id, name, slug, description, cover_image_url, start_date, end_date, status, total_photo_limit, guest_photo_limit, allow_downloads, created_at, updated_at FROM events WHERE id = $1`
+	query := `SELECT id, business_id, name, slug, COALESCE(description, ''), COALESCE(cover_image_url, ''), start_date, end_date, status, total_photo_limit, guest_photo_limit, allow_downloads, created_at, updated_at FROM events WHERE id = $1`
 	var event model.Event
 	err := r.db.pool.QueryRow(ctx, query, id).Scan(
 		&event.ID, &event.BusinessID, &event.Name, &event.Slug, &event.Description, &event.CoverImageURL, &event.StartDate, &event.EndDate, &event.Status, &event.TotalPhotoLimit, &event.GuestPhotoLimit, &event.AllowDownloads, &event.CreatedAt, &event.UpdatedAt,
@@ -310,7 +310,7 @@ func (r *EventRepo) GetByID(ctx context.Context, id int64) (*model.Event, error)
 }
 
 func (r *EventRepo) GetBySlug(ctx context.Context, slug string) (*model.Event, error) {
-	query := `SELECT id, business_id, name, slug, description, cover_image_url, start_date, end_date, status, total_photo_limit, guest_photo_limit, allow_downloads, created_at, updated_at FROM events WHERE slug = $1`
+	query := `SELECT id, business_id, name, slug, COALESCE(description, ''), COALESCE(cover_image_url, ''), start_date, end_date, status, total_photo_limit, guest_photo_limit, allow_downloads, created_at, updated_at FROM events WHERE slug = $1`
 	var event model.Event
 	err := r.db.pool.QueryRow(ctx, query, slug).Scan(
 		&event.ID, &event.BusinessID, &event.Name, &event.Slug, &event.Description, &event.CoverImageURL, &event.StartDate, &event.EndDate, &event.Status, &event.TotalPhotoLimit, &event.GuestPhotoLimit, &event.AllowDownloads, &event.CreatedAt, &event.UpdatedAt,
@@ -322,7 +322,7 @@ func (r *EventRepo) GetBySlug(ctx context.Context, slug string) (*model.Event, e
 }
 
 func (r *EventRepo) GetByBusinessID(ctx context.Context, businessID int64, limit, offset int) ([]model.Event, error) {
-	query := `SELECT id, business_id, name, slug, description, cover_image_url, start_date, end_date, status, total_photo_limit, guest_photo_limit, allow_downloads, created_at, updated_at FROM events WHERE business_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`
+	query := `SELECT id, business_id, name, slug, COALESCE(description, ''), COALESCE(cover_image_url, ''), start_date, end_date, status, total_photo_limit, guest_photo_limit, allow_downloads, created_at, updated_at FROM events WHERE business_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`
 	rows, err := r.db.pool.Query(ctx, query, businessID, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("fetching events: %w", err)
@@ -341,7 +341,7 @@ func (r *EventRepo) GetByBusinessID(ctx context.Context, businessID int64, limit
 }
 
 func (r *EventRepo) GetAll(ctx context.Context, limit, offset int) ([]model.Event, error) {
-	query := `SELECT id, business_id, name, slug, description, cover_image_url, start_date, end_date, status, total_photo_limit, guest_photo_limit, allow_downloads, created_at, updated_at FROM events ORDER BY created_at DESC LIMIT $1 OFFSET $2`
+	query := `SELECT id, business_id, name, slug, COALESCE(description, ''), COALESCE(cover_image_url, ''), start_date, end_date, status, total_photo_limit, guest_photo_limit, allow_downloads, created_at, updated_at FROM events ORDER BY created_at DESC LIMIT $1 OFFSET $2`
 	rows, err := r.db.pool.Query(ctx, query, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("fetching events: %w", err)
@@ -432,8 +432,8 @@ func (r *GuestRepo) GetPhotoCount(ctx context.Context, guestID int64) (int, erro
 type PhotoRepo struct{ db *DB }
 
 func (r *PhotoRepo) Create(ctx context.Context, photo *model.Photo) (*model.Photo, error) {
-	query := `INSERT INTO photos (event_id, guest_id, storage_path, thumbnail_path, original_filename, file_size_bytes, mime_type, width, height, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id, url, thumbnail_url, created_at`
-	err := r.db.pool.QueryRow(ctx, query, photo.EventID, photo.GuestID, photo.StoragePath, photo.ThumbnailPath, photo.OriginalFilename, photo.FileSizeBytes, photo.MimeType, photo.Width, photo.Height, photo.Status).Scan(
+	query := `INSERT INTO photos (event_id, guest_id, storage_path, thumbnail_path, url, thumbnail_url, original_filename, file_size_bytes, mime_type, width, height, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id, url, thumbnail_url, created_at`
+	err := r.db.pool.QueryRow(ctx, query, photo.EventID, photo.GuestID, photo.StoragePath, photo.ThumbnailPath, photo.URL, photo.ThumbnailURL, photo.OriginalFilename, photo.FileSizeBytes, photo.MimeType, photo.Width, photo.Height, photo.Status).Scan(
 		&photo.ID, &photo.URL, &photo.ThumbnailURL, &photo.CreatedAt,
 	)
 	if err != nil {

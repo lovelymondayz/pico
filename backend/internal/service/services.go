@@ -81,8 +81,14 @@ func (bs *BusinessService) Register(ctx context.Context, email, password, name, 
 	}
 
 	plans, err := bs.s.repo.Plans.GetAll(ctx)
-	if err == nil && len(plans) > 0 {
-		_, _ = bs.s.repo.Subscriptions.Create(ctx, biz.ID, plans[0].ID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("fetching plans: %w", err)
+	}
+	if len(plans) == 0 {
+		return nil, nil, fmt.Errorf("no subscription plans available")
+	}
+	if _, err := bs.s.repo.Subscriptions.Create(ctx, biz.ID, plans[0].ID); err != nil {
+		return nil, nil, fmt.Errorf("creating subscription: %w", err)
 	}
 
 	return user, biz, nil
@@ -290,8 +296,8 @@ func (ps *PhotoService) Upload(ctx context.Context, eventID, guestID int64, file
 		GuestID:          guestID,
 		StoragePath:      photoPath,
 		ThumbnailPath:    thumbPath,
-		URL:              fmt.Sprintf("/api/photos/%s", id),
-		ThumbnailURL:     fmt.Sprintf("/api/photos/%s/thumb", id),
+		URL:              fmt.Sprintf("/photos/%s", id),
+		ThumbnailURL:     fmt.Sprintf("/photos/%s/thumb", id),
 		OriginalFilename: filename,
 		FileSizeBytes:    int64(len(processed)),
 		MimeType:         "image/jpeg",
