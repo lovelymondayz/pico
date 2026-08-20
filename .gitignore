@@ -26,3 +26,11 @@
 
 # Local data (photos, db)
 /data/
+
+# Dependencies (root and frontend)
+node_modules/
+frontend/node_modules/
+
+# Build
+frontend/dist/
+frontend/build/

@@ -15,7 +15,7 @@ interface Event {
 }
 
 const DUMMY_EVENTS: Event[] = [
-  { id: 1, name: 'Sarah & Michael Wedding', slug: 'sarah-michael-wedding-1787092829', photo_count: 47, status: 'active', created_at: '2026-08-18T10:00:00Z', total_photo_limit: 500, guest_photo_limit: 20 },
+  { id: 1, name: 'Sarah & Michael Wedding', slug: 'sarah-michael-wedding', photo_count: 47, status: 'active', created_at: '2026-08-18T10:00:00Z', total_photo_limit: 500, guest_photo_limit: 20 },
   { id: 2, name: 'Company Annual Party 2026', slug: 'company-party-2026-1787092830', photo_count: 128, status: 'active', created_at: '2026-08-17T14:30:00Z', total_photo_limit: 1000, guest_photo_limit: 30 },
   { id: 3, name: 'Product Launch Event', slug: 'product-launch-1787092831', photo_count: 0, status: 'active', created_at: '2026-08-16T09:00:00Z', total_photo_limit: 200, guest_photo_limit: 10 },
   { id: 4, name: 'Summer Beach Party', slug: 'summer-beach-1787092832', photo_count: 312, status: 'closed', created_at: '2026-07-20T18:00:00Z', total_photo_limit: 500, guest_photo_limit: 20 },
