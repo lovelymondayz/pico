@@ -13,7 +13,7 @@
 
 set -e
 
-PROJECT_DIR="/root/pico"
+PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 COMPOSE="docker compose"
 
 cd "$PROJECT_DIR"
