@@ -1,0 +1,35 @@
+# Dependencies
+node_modules
+__pycache__
+*.pyc
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.coverage
+
+# Environment
+.env
+.env.local
+backend/.env
+frontend/.env
+
+# Build
+dist
+build
+*.log
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+
+# Git
+.git
+.gitignore
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode
+.idea

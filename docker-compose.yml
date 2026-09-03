@@ -2,6 +2,8 @@ services:
   postgres:
     image: postgres:15-alpine
     container_name: pico-postgres
+    env_file:
+      - .env
     environment:
       POSTGRES_DB: pico
       POSTGRES_USER: pico
