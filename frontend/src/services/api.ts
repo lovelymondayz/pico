@@ -58,6 +58,11 @@ export async function listPhotos(slug: string, limit: number = 30, offset: numbe
   return handleRes(res)
 }
 
+export async function searchPhotos(slug: string, keyword: string, limit: number = 30, offset: number = 0) {
+  const res = await fetch(`${API_BASE}/e/${slug}/photos?search=${encodeURIComponent(keyword)}&limit=${limit}&offset=${offset}`)
+  return handleRes(res)
+}
+
 export async function uploadPhoto(slug: string, guestToken: string, file: File, caption?: string) {
   const formData = new FormData()
   formData.append('photo', file)

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 	"pico/internal/config"
@@ -9,6 +10,7 @@ import (
 	"pico/internal/storage"
 	"strconv"
 	"time"
+	"archive/zip"
 
 	"github.com/gin-gonic/gin"
 )
@@ -531,6 +533,70 @@ func (h *Handler) DownloadPhotos(c *gin.Context) {
 		"count":      len(downloads),
 		"photos":     downloads,
 	})
+}
+
+func (h *Handler) DownloadPhotosZIP(c *gin.Context) {
+	userID := c.GetInt64("userID")
+	eventID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+
+	event, err := h.services.Event.GetByID(c.Request.Context(), eventID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "event not found"})
+		return
+	}
+
+	business, err := h.services.Business.GetByUserID(c.Request.Context(), userID)
+	if err != nil || business.ID != event.BusinessID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
+
+	if !event.AllowDownloads {
+		c.JSON(http.StatusForbidden, gin.H{"error": "downloads not enabled for this event"})
+		return
+	}
+
+	photos, err := h.services.Photo.GetByEvent(c.Request.Context(), eventID, 1000, 0)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch photos"})
+		return
+	}
+
+	if len(photos) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "no photos to download"})
+		return
+	}
+
+	// Create ZIP in memory
+	var buf bytes.Buffer
+	zipWriter := zip.NewWriter(&buf)
+
+	for i, p := range photos {
+		if p.ImmichAssetID == "" {
+			continue
+		}
+		// Download from Immich
+		immichStore, ok := h.services.GetStorage().(*storage.ImmichStorage)
+		if !ok {
+			continue
+		}
+		data, err := immichStore.ReadFile(p.ImmichAssetID)
+		if err != nil {
+			continue
+		}
+		filename := fmt.Sprintf("%d_%s", i+1, p.OriginalFilename)
+		f, err := zipWriter.Create(filename)
+		if err != nil {
+			continue
+		}
+		f.Write(data)
+	}
+
+	zipWriter.Close()
+
+	c.Header("Content-Type", "application/zip")
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s.zip\"", event.Slug))
+	c.Data(http.StatusOK, "application/zip", buf.Bytes())
 }
 
 func (h *Handler) DeletePhoto(c *gin.Context) {

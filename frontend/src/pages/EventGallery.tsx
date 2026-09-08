@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
-import { getEvent, registerGuest, listPhotos, uploadPhoto } from '../services/api'
+import { getEvent, registerGuest, listPhotos, uploadPhoto, searchPhotos } from '../services/api'
 
 interface Photo {
   id: number
@@ -22,6 +22,8 @@ export default function EventGallery() {
   const [uploading, setUploading] = useState(false)
   const [lightbox, setLightbox] = useState<Photo | null>(null)
   const [showUpload, setShowUpload] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [sortBy, setSortBy] = useState('newest')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -30,7 +32,7 @@ export default function EventGallery() {
 
   useEffect(() => {
     if (event?.id) loadPhotos()
-  }, [event?.id])
+  }, [event?.id, searchQuery])
 
   const loadEvent = async () => {
     try {
@@ -45,7 +47,12 @@ export default function EventGallery() {
 
   const loadPhotos = async () => {
     try {
-      const res = await listPhotos(slug!)
+      let res
+      if (searchQuery.trim()) {
+        res = await searchPhotos(slug!, searchQuery)
+      } else {
+        res = await listPhotos(slug!)
+      }
       setPhotos(res.photos || [])
     } catch {
       // Ignore
@@ -143,6 +150,25 @@ export default function EventGallery() {
             </div>
           </div>
         )}
+
+        {/* Search and Filter */}
+        <div className="mb-6 flex flex-col sm:flex-row gap-3">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by filename or guest name..."
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+          />
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+          >
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+          </select>
+        </div>
 
         {/* Photo Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">

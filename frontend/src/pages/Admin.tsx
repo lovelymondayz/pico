@@ -21,21 +21,11 @@ interface Plan {
   photos_per_guest: number
 }
 
-const DUMMY_BUSINESSES: Business[] = [
-  { id: 1, name: 'Lovely Moments Photography', email: 'hello@lovelymoments.com', slug: 'lovely-moments', status: 'active', created_at: '2026-07-15T10:00:00Z', event_count: 12, photo_count: 1847 },
-  { id: 2, name: 'Dream Day Weddings', email: 'info@dreamday.com', slug: 'dream-day', status: 'active', created_at: '2026-08-01T14:30:00Z', event_count: 5, photo_count: 623 },
-  { id: 3, name: 'Party Snap Events', email: 'contact@partysnap.com', slug: 'party-snap', status: 'suspended', created_at: '2026-06-20T09:00:00Z', event_count: 2, photo_count: 45 },
-  { id: 4, name: 'Capture Studio', email: 'hello@capturestudio.com', slug: 'capture-studio', status: 'active', created_at: '2026-08-10T11:00:00Z', event_count: 8, photo_count: 1204 },
-]
-
-const DUMMY_PLANS: Plan[] = [
-  { id: 4, name: 'Starter', price: 0, max_photos: 1000, max_events: 5, photos_per_guest: 30 },
-  { id: 5, name: 'Professional', price: 9.99, max_photos: 5000, max_events: 20, photos_per_guest: 50 },
-  { id: 6, name: 'Business', price: 29.99, max_photos: 50000, max_events: 999, photos_per_guest: 100 },
-]
+const DUMMY_BUSINESSES: Business[] = []
+const DUMMY_PLANS: Plan[] = []
 
 export default function Admin() {
-  const [tab, setTab] = useState<'businesses' | 'plans'>('businesses')
+  const [tab, setTab] = useState<'businesses' | 'plans' | 'analytics'>('businesses')
   const [businesses, setBusinesses] = useState<Business[]>([])
   const [plans, setPlans] = useState<Plan[]>([])
   const [stats, setStats] = useState<any>(null)
@@ -49,18 +39,15 @@ export default function Admin() {
   const loadData = async () => {
     try {
       const [bizRes, statsRes, plansRes] = await Promise.all([
-        listAllBusinesses().catch(() => ({ businesses: [] })),
-        adminStats().catch(() => null),
-        listPlans().catch(() => ({ plans: [] })),
+        listAllBusinesses(),
+        adminStats(),
+        listPlans(),
       ])
-      const apiBiz = bizRes.businesses || []
-      setBusinesses(apiBiz.length > 0 ? apiBiz : DUMMY_BUSINESSES)
-      setPlans((plansRes.plans || []).length > 0 ? plansRes.plans : DUMMY_PLANS)
-      setStats(statsRes || { total_businesses: 4, total_events: 27, total_photos: 3719, total_storage_mb: 1247.5 })
-    } catch {
-      setBusinesses(DUMMY_BUSINESSES)
-      setPlans(DUMMY_PLANS)
-      setStats({ total_businesses: 4, total_events: 27, total_photos: 3719, total_storage_mb: 1247.5 })
+      setBusinesses(bizRes.businesses || [])
+      setPlans(plansRes.plans || [])
+      setStats(statsRes?.stats || null)
+    } catch (err: any) {
+      setError(err.message || 'Failed to load admin data')
     } finally {
       setLoading(false)
     }
@@ -133,8 +120,64 @@ export default function Admin() {
           >
             Plans ({plans.length})
           </button>
+          <button
+            onClick={() => setTab('analytics')}
+            className={`py-3 border-b-2 font-medium text-sm transition-colors ${
+              tab === 'analytics' ? 'border-purple-600 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Analytics
+          </button>
         </nav>
       </div>
+
+      {/* Content */}
+      {tab === 'analytics' && (
+        <div className="space-y-6">
+          {/* Recent Uploads Chart */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Uploads (7 Days)</h3>
+            {stats?.recent_uploads && stats.recent_uploads.length > 0 ? (
+              <div className="space-y-2">
+                {stats.recent_uploads.map((u: any, i: number) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <span className="text-sm text-gray-600 w-24">{u.date}</span>
+                    <div className="flex-1 bg-gray-100 rounded-full h-4 overflow-hidden">
+                      <div
+                        className="bg-purple-600 h-full rounded-full"
+                        style={{ width: `${Math.min(100, (u.count / Math.max(...stats.recent_uploads.map((x: any) => x.count), 1)) * 100)}%` }}
+                      />
+                    </div>
+                    <span className="text-sm font-medium text-gray-900 w-8">{u.count}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500">No recent uploads</p>
+            )}
+          </div>
+
+          {/* Top Events */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Events by Photo Count</h3>
+            {stats?.top_events && stats.top_events.length > 0 ? (
+              <div className="space-y-3">
+                {stats.top_events.map((e: any, i: number) => (
+                  <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="font-medium text-gray-900">{e.event_name}</p>
+                      <p className="text-sm text-gray-500">{e.business_name}</p>
+                    </div>
+                    <span className="text-2xl font-bold text-purple-600">{e.photo_count}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500">No events yet</p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Content */}
       {tab === 'businesses' && (

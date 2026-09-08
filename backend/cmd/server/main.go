@@ -93,6 +93,7 @@ func main() {
 		business.DELETE("/events/:id/photos/:photoID", h.DeletePhoto)
 		business.POST("/events/:id/cover", h.UploadCoverImage)
 		business.GET("/events/:id/download", h.DownloadPhotos)
+		business.GET("/events/:id/download-zip", h.DownloadPhotosZIP)
 		business.GET("/events/:id/qr", h.GenerateQR)
 		business.GET("/stats", h.BusinessStats)
 	}
