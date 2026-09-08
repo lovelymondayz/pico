@@ -666,6 +666,13 @@ func (h *Handler) ServePhoto(c *gin.Context) {
 		return
 	}
 
+	// If photo has Immich asset ID, redirect to Immich URL
+	if photo.ImmichAssetID != "" {
+		immichURL := h.services.GetStorage().GetFullPath(photo.ImmichAssetID)
+		c.Redirect(http.StatusFound, immichURL)
+		return
+	}
+
 	fullPath := h.services.GetStorage().GetFullPath(photo.StoragePath)
 	c.File(fullPath)
 }
@@ -680,6 +687,13 @@ func (h *Handler) ServeThumbnail(c *gin.Context) {
 	photo, err := h.services.Photo.GetByID(c.Request.Context(), id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "photo not found"})
+		return
+	}
+
+	// If photo has Immich asset ID, redirect to Immich thumbnail URL
+	if photo.ImmichAssetID != "" {
+		immichURL := h.services.GetStorage().GetFullPath("thumb-" + photo.ImmichAssetID)
+		c.Redirect(http.StatusFound, immichURL)
 		return
 	}
 

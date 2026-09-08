@@ -85,12 +85,13 @@ type Photo struct {
 	ThumbnailPath    string    `json:"-"`
 	URL              string    `json:"url"`
 	ThumbnailURL     string    `json:"thumbnail_url"`
+	ImmichAssetID    string    `json:"immich_asset_id,omitempty"`
 	OriginalFilename string    `json:"original_filename"`
 	FileSizeBytes    int64     `json:"file_size_bytes"`
 	MimeType         string    `json:"mime_type"`
 	Width            int       `json:"width"`
 	Height           int       `json:"height"`
-	Status           string    `json:"status"` // "active", "deleted", "flagged"
+	Status           string    `json:"status"`
 	CreatedAt        time.Time `json:"created_at"`
 }
 

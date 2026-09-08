@@ -18,7 +18,7 @@ func main() {
 	cfg := config.Load()
 
 	// Initialize storage
-	store, err := storage.NewLocalStorage(cfg.StoragePath)
+	store, err := storage.NewStorage(cfg.StoragePath, cfg.ImmichAPIURL, cfg.ImmichAPIKey, cfg.ImmichDeviceID, cfg.ImmichAlbumID)
 	if err != nil {
 		log.Fatalf("Failed to initialize storage: %v", err)
 	}
@@ -51,9 +51,9 @@ func main() {
 
 	// CORS
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"*"},
+		AllowOrigins:     []string{"https://pico.arjism.com", "http://localhost:3005", "http://localhost:5173"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "X-Guest-Token"},
 		ExposeHeaders:    []string{"Content-Length", "Content-Type"},
 		AllowCredentials: true,
 	}))

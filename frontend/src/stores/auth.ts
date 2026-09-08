@@ -34,7 +34,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   isAuthenticated: !!localStorage.getItem('pico_token'),
 
   login: async (email: string, password: string) => {
-    const res = await fetch('/api/auth/login', {
+    const res = await fetch('https://backend-pico.arjism.com/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
@@ -50,7 +50,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   register: async (email: string, password: string, name: string, businessName: string) => {
-    const res = await fetch('/api/auth/register', {
+    const res = await fetch('https://backend-pico.arjism.com/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password, name, business_name: businessName }),

@@ -22,6 +22,10 @@ type Config struct {
 	GuestTokenExpiry  time.Duration
 	RateLimitRequests int
 	RateLimitWindow   time.Duration
+	ImmichAPIURL      string
+	ImmichAPIKey      string
+	ImmichDeviceID    string
+	ImmichAlbumID     string
 }
 
 func Load() *Config {
@@ -29,7 +33,7 @@ func Load() *Config {
 
 	return &Config{
 		Port:              getEnv("PORT", "8082"),
-		DatabaseURL:       getEnv("DATABASE_URL", "postgres://pico:pico@localhost:5435/pico?sslmode=disable"),
+		DatabaseURL:       getEnv("DATABASE_URL", "postgres://pico:***@localhost:5435/pico?sslmode=disable"),
 		JWTSecret:         getEnv("JWT_SECRET", "pico-secret-change-in-production"),
 		JWTExpiryHours:    time.Duration(getEnvInt("JWT_EXPIRY_HOURS", 72)) * time.Hour,
 		StoragePath:       getEnv("STORAGE_PATH", "/data/photos"),
@@ -40,6 +44,10 @@ func Load() *Config {
 		GuestTokenExpiry:  time.Duration(getEnvInt("GUEST_TOKEN_EXPIRY_DAYS", 30)) * 24 * time.Hour,
 		RateLimitRequests: getEnvInt("RATE_LIMIT_REQUESTS", 10),
 		RateLimitWindow:   time.Duration(getEnvInt("RATE_LIMIT_WINDOW_SECONDS", 60)) * time.Second,
+		ImmichAPIURL:      getEnv("IMMICH_API_URL", ""),
+		ImmichAPIKey:      getEnv("IMMICH_API_KEY", ""),
+		ImmichDeviceID:    getEnv("IMMICH_DEVICE_ID", ""),
+		ImmichAlbumID:     getEnv("IMMICH_ALBUM_ID", ""),
 	}
 }
 

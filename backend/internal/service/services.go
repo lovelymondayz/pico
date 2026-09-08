@@ -180,6 +180,15 @@ func (es *EventService) Create(ctx context.Context, businessID int64, name, slug
 		guestPhotoLimit = plan.PhotosPerGuest
 	}
 
+	// Validate dates are not in the past
+	now := time.Now()
+	if startDate.Before(now.Truncate(24 * time.Hour)) {
+		return nil, fmt.Errorf("start date cannot be in the past")
+	}
+	if endDate.Before(startDate) {
+		return nil, fmt.Errorf("end date must be after start date")
+	}
+
 	event := &model.Event{
 		BusinessID:      businessID,
 		Name:            name,
@@ -278,17 +287,30 @@ func (ps *PhotoService) Upload(ctx context.Context, eventID, guestID int64, file
 	}
 
 	id := uuid.New().String()
-	photoPath := fmt.Sprintf("%d/%s.jpg", eventID, id)
-	thumbPath := fmt.Sprintf("%d/%s_thumb.jpg", eventID, id)
+	var assetID, photoPath, thumbPath string
 
-	fullPhotoPath := ps.s.storage.GetFullPath(photoPath)
-	fullThumbPath := ps.s.storage.GetFullPath(thumbPath)
+	if immichStore, ok := ps.s.storage.(*storage.ImmichStorage); ok {
+		// Immich storage: upload to Immich
+		file := storage.BytesToMultipartFile(processed)
+		assetID, err = immichStore.Save(file, filename)
+		if err != nil {
+			return nil, fmt.Errorf("uploading to Immich: %w", err)
+		}
+		photoPath = assetID
+		thumbPath = assetID
+	} else {
+		// Local storage fallback
+		photoPath = fmt.Sprintf("%d/%s.jpg", eventID, id)
+		thumbPath = fmt.Sprintf("%d/%s_thumb.jpg", eventID, id)
+		fullPhotoPath := ps.s.storage.GetFullPath(photoPath)
+		fullThumbPath := ps.s.storage.GetFullPath(thumbPath)
 
-	if err := ps.s.storage.SaveBytes(fullPhotoPath, processed); err != nil {
-		return nil, fmt.Errorf("saving photo: %w", err)
-	}
-	if err := ps.s.storage.SaveBytes(fullThumbPath, thumbnail); err != nil {
-		return nil, fmt.Errorf("saving thumbnail: %w", err)
+		if err := ps.s.storage.SaveBytes(fullPhotoPath, processed); err != nil {
+			return nil, fmt.Errorf("saving photo: %w", err)
+		}
+		if err := ps.s.storage.SaveBytes(fullThumbPath, thumbnail); err != nil {
+			return nil, fmt.Errorf("saving thumbnail: %w", err)
+		}
 	}
 
 	photo := &model.Photo{
@@ -298,6 +320,7 @@ func (ps *PhotoService) Upload(ctx context.Context, eventID, guestID int64, file
 		ThumbnailPath:    thumbPath,
 		URL:              fmt.Sprintf("/photos/%s", id),
 		ThumbnailURL:     fmt.Sprintf("/photos/%s/thumb", id),
+		ImmichAssetID:    assetID,
 		OriginalFilename: filename,
 		FileSizeBytes:    int64(len(processed)),
 		MimeType:         "image/jpeg",

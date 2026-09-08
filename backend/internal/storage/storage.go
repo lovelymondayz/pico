@@ -20,6 +20,20 @@ type Storage interface {
 	ReadFile(path string) ([]byte, error)
 }
 
+// NewStorage creates a storage backend based on configuration
+func NewStorage(basePath, immichURL, immichKey, immichDevice, immichAlbum string) (Storage, error) {
+	if immichURL != "" && immichKey != "" {
+		cfg := ImmichConfig{
+			APIURL:   immichURL,
+			APIKey:   immichKey,
+			DeviceID: immichDevice,
+			AlbumID:  immichAlbum,
+		}
+		return NewImmichStorage(cfg)
+	}
+	return NewLocalStorage(basePath)
+}
+
 // LocalStorage implements Storage for local filesystem
 type LocalStorage struct {
 	basePath string

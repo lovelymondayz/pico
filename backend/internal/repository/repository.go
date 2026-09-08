@@ -432,8 +432,8 @@ func (r *GuestRepo) GetPhotoCount(ctx context.Context, guestID int64) (int, erro
 type PhotoRepo struct{ db *DB }
 
 func (r *PhotoRepo) Create(ctx context.Context, photo *model.Photo) (*model.Photo, error) {
-	query := `INSERT INTO photos (event_id, guest_id, storage_path, thumbnail_path, url, thumbnail_url, original_filename, file_size_bytes, mime_type, width, height, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id, url, thumbnail_url, created_at`
-	err := r.db.pool.QueryRow(ctx, query, photo.EventID, photo.GuestID, photo.StoragePath, photo.ThumbnailPath, photo.URL, photo.ThumbnailURL, photo.OriginalFilename, photo.FileSizeBytes, photo.MimeType, photo.Width, photo.Height, photo.Status).Scan(
+	query := `INSERT INTO photos (event_id, guest_id, storage_path, thumbnail_path, url, thumbnail_url, immich_asset_id, original_filename, file_size_bytes, mime_type, width, height, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id, url, thumbnail_url, created_at`
+	err := r.db.pool.QueryRow(ctx, query, photo.EventID, photo.GuestID, photo.StoragePath, photo.ThumbnailPath, photo.URL, photo.ThumbnailURL, photo.ImmichAssetID, photo.OriginalFilename, photo.FileSizeBytes, photo.MimeType, photo.Width, photo.Height, photo.Status).Scan(
 		&photo.ID, &photo.URL, &photo.ThumbnailURL, &photo.CreatedAt,
 	)
 	if err != nil {
@@ -443,10 +443,10 @@ func (r *PhotoRepo) Create(ctx context.Context, photo *model.Photo) (*model.Phot
 }
 
 func (r *PhotoRepo) GetByID(ctx context.Context, id int64) (*model.Photo, error) {
-	query := `SELECT id, event_id, guest_id, storage_path, thumbnail_path, url, thumbnail_url, original_filename, file_size_bytes, mime_type, width, height, status, created_at FROM photos WHERE id = $1`
+	query := `SELECT id, event_id, guest_id, storage_path, thumbnail_path, url, thumbnail_url, COALESCE(immich_asset_id, ''), original_filename, file_size_bytes, mime_type, width, height, status, created_at FROM photos WHERE id = $1`
 	var photo model.Photo
 	err := r.db.pool.QueryRow(ctx, query, id).Scan(
-		&photo.ID, &photo.EventID, &photo.GuestID, &photo.StoragePath, &photo.ThumbnailPath, &photo.URL, &photo.ThumbnailURL, &photo.OriginalFilename, &photo.FileSizeBytes, &photo.MimeType, &photo.Width, &photo.Height, &photo.Status, &photo.CreatedAt,
+		&photo.ID, &photo.EventID, &photo.GuestID, &photo.StoragePath, &photo.ThumbnailPath, &photo.URL, &photo.ThumbnailURL, &photo.ImmichAssetID, &photo.OriginalFilename, &photo.FileSizeBytes, &photo.MimeType, &photo.Width, &photo.Height, &photo.Status, &photo.CreatedAt,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("fetching photo: %w", err)
@@ -455,7 +455,7 @@ func (r *PhotoRepo) GetByID(ctx context.Context, id int64) (*model.Photo, error)
 }
 
 func (r *PhotoRepo) GetByEvent(ctx context.Context, eventID int64, limit, offset int) ([]model.Photo, error) {
-	query := `SELECT id, event_id, guest_id, storage_path, thumbnail_path, url, thumbnail_url, original_filename, file_size_bytes, mime_type, width, height, status, created_at FROM photos WHERE event_id = $1 AND status = 'active' ORDER BY created_at DESC LIMIT $2 OFFSET $3`
+	query := `SELECT id, event_id, guest_id, storage_path, thumbnail_path, url, thumbnail_url, COALESCE(immich_asset_id, ''), original_filename, file_size_bytes, mime_type, width, height, status, created_at FROM photos WHERE event_id = $1 AND status = 'active' ORDER BY created_at DESC LIMIT $2 OFFSET $3`
 	rows, err := r.db.pool.Query(ctx, query, eventID, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("fetching photos: %w", err)
@@ -465,7 +465,7 @@ func (r *PhotoRepo) GetByEvent(ctx context.Context, eventID int64, limit, offset
 	var photos []model.Photo
 	for rows.Next() {
 		var photo model.Photo
-		if err := rows.Scan(&photo.ID, &photo.EventID, &photo.GuestID, &photo.StoragePath, &photo.ThumbnailPath, &photo.URL, &photo.ThumbnailURL, &photo.OriginalFilename, &photo.FileSizeBytes, &photo.MimeType, &photo.Width, &photo.Height, &photo.Status, &photo.CreatedAt); err != nil {
+		if err := rows.Scan(&photo.ID, &photo.EventID, &photo.GuestID, &photo.StoragePath, &photo.ThumbnailPath, &photo.URL, &photo.ThumbnailURL, &photo.ImmichAssetID, &photo.OriginalFilename, &photo.FileSizeBytes, &photo.MimeType, &photo.Width, &photo.Height, &photo.Status, &photo.CreatedAt); err != nil {
 			return nil, err
 		}
 		photos = append(photos, photo)

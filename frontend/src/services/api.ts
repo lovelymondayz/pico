@@ -1,4 +1,4 @@
-const API_BASE = '/api'
+const API_BASE = 'https://backend-pico.arjism.com/api'
 
 function getToken(): string | null {
   return localStorage.getItem('pico_token')

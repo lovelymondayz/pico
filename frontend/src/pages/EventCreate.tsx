@@ -7,7 +7,7 @@ export default function EventCreate() {
   const [description, setDescription] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
-  const [totalLimit, setTotalLimit] = useState(500)
+  const [totalLimit, setTotalLimit] = useState(100)
   const [guestLimit, setGuestLimit] = useState(20)
   const [allowDownloads, setAllowDownloads] = useState(true)
   const [error, setError] = useState('')
@@ -35,6 +35,8 @@ export default function EventCreate() {
       setLoading(false)
     }
   }
+
+  const today = new Date().toISOString().split('T')[0]
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -77,6 +79,7 @@ export default function EventCreate() {
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
+                min={today}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
               />
             </div>
@@ -86,6 +89,7 @@ export default function EventCreate() {
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
+                min={today}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
               />
             </div>
