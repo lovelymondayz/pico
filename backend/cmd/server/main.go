@@ -75,6 +75,7 @@ func main() {
 		public.GET("/e/:slug/photos/stream", h.StreamPhotos)
 		public.POST("/e/:slug/upload", rateLimit.Limit(), h.UploadPhoto)
 		public.GET("/e/:slug/photos/:id", h.GetPhoto)
+		public.GET("/business/events/:id/qr", h.GenerateQR)
 	}
 
 	// Photo serving
@@ -95,7 +96,6 @@ func main() {
 		business.POST("/events/:id/cover", h.UploadCoverImage)
 		business.GET("/events/:id/download", h.DownloadPhotos)
 		business.GET("/events/:id/download-zip", h.DownloadPhotosZIP)
-		business.GET("/events/:id/qr", h.GenerateQR)
 		business.GET("/stats", h.BusinessStats)
 	}
 
