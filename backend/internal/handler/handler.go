@@ -162,8 +162,14 @@ func (h *Handler) ListPhotos(c *gin.Context) {
 
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "30"))
 	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+	keyword := c.DefaultQuery("search", "")
 
-	photos, err := h.services.Photo.GetByEvent(c.Request.Context(), event.ID, limit, offset)
+	var photos []model.Photo
+	if keyword != "" {
+		photos, err = h.services.Photo.SearchByEvent(c.Request.Context(), event.ID, keyword, limit, offset)
+	} else {
+		photos, err = h.services.Photo.GetByEvent(c.Request.Context(), event.ID, limit, offset)
+	}
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch photos"})
 		return

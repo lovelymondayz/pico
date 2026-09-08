@@ -387,6 +387,10 @@ func (ps *PhotoService) Delete(ctx context.Context, photoID, businessID int64) e
 	return nil
 }
 
+func (ps *PhotoService) SearchByEvent(ctx context.Context, eventID int64, keyword string, limit, offset int) ([]model.Photo, error) {
+	return ps.s.repo.Photos.SearchByEvent(ctx, eventID, keyword, limit, offset)
+}
+
 func (ps *PhotoService) GenerateQR(ctx context.Context, url string, size int) ([]byte, error) {
 	return ps.s.qrGen.GeneratePNG(url, size)
 }
@@ -403,12 +407,20 @@ func (as *AdminService) GetStats(ctx context.Context) (*model.AdminStats, error)
 	totalStorage, _ := as.s.repo.Photos.SumTotalStorage(ctx)
 	activePlans, _ := as.s.repo.Plans.Count(ctx)
 
+	// Get recent uploads (last 7 days)
+	recentUploads, _ := as.s.repo.Photos.GetRecentUploads(ctx, 7)
+
+	// Get top events by photo count
+	topEvents, _ := as.s.repo.Photos.GetTopEvents(ctx, 5)
+
 	return &model.AdminStats{
 		TotalBusinesses: totalBiz,
 		TotalEvents:     totalEvents,
 		TotalPhotos:     totalPhotos,
 		TotalStorageMB:  totalStorage,
 		ActivePlans:     activePlans,
+		RecentUploads:   recentUploads,
+		TopEvents:       topEvents,
 	}, nil
 }
 

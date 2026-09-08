@@ -478,6 +478,25 @@ func (r *PhotoRepo) GetByEvent(ctx context.Context, eventID int64, limit, offset
 	return photos, nil
 }
 
+func (r *PhotoRepo) SearchByEvent(ctx context.Context, eventID int64, keyword string, limit, offset int) ([]model.Photo, error) {
+	query := `SELECT id, event_id, guest_id, storage_path, thumbnail_path, url, thumbnail_url, COALESCE(immich_asset_id, ''), original_filename, file_size_bytes, mime_type, width, height, status, created_at FROM photos WHERE event_id = $1 AND status = 'active' AND (original_filename ILIKE $2 OR EXISTS (SELECT 1 FROM guests g WHERE g.id = photos.guest_id AND g.name ILIKE $2)) ORDER BY created_at DESC LIMIT $3 OFFSET $4`
+	rows, err := r.db.pool.Query(ctx, query, eventID, "%"+keyword+"%", limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("searching photos: %w", err)
+	}
+	defer rows.Close()
+
+	var photos []model.Photo
+	for rows.Next() {
+		var photo model.Photo
+		if err := rows.Scan(&photo.ID, &photo.EventID, &photo.GuestID, &photo.StoragePath, &photo.ThumbnailPath, &photo.URL, &photo.ThumbnailURL, &photo.ImmichAssetID, &photo.OriginalFilename, &photo.FileSizeBytes, &photo.MimeType, &photo.Width, &photo.Height, &photo.Status, &photo.CreatedAt); err != nil {
+			return nil, err
+		}
+		photos = append(photos, photo)
+	}
+	return photos, nil
+}
+
 func (r *PhotoRepo) CountByEvent(ctx context.Context, eventID int64) (int, error) {
 	var count int
 	err := r.db.pool.QueryRow(ctx, `SELECT COUNT(*) FROM photos WHERE event_id = $1 AND status = 'active'`, eventID).Scan(&count)
@@ -548,4 +567,56 @@ func (r *PhotoRepo) SumTotalStorage(ctx context.Context) (float64, error) {
 		return 0, nil
 	}
 	return float64(*totalBytes) / (1024 * 1024), nil
+}
+
+func (r *PhotoRepo) GetRecentUploads(ctx context.Context, days int) ([]model.UploadTrend, error) {
+	query := `
+		SELECT DATE(created_at) as date, COUNT(*) as count
+		FROM photos
+		WHERE status = 'active' AND created_at >= NOW() - INTERVAL '%d days'
+		GROUP BY DATE(created_at)
+		ORDER BY date ASC
+	`
+	rows, err := r.db.pool.Query(ctx, fmt.Sprintf(query, days))
+	if err != nil {
+		return nil, fmt.Errorf("fetching recent uploads: %w", err)
+	}
+	defer rows.Close()
+
+	var trends []model.UploadTrend
+	for rows.Next() {
+		var t model.UploadTrend
+		if err := rows.Scan(&t.Date, &t.Count); err != nil {
+			return nil, err
+		}
+		trends = append(trends, t)
+	}
+	return trends, nil
+}
+
+func (r *PhotoRepo) GetTopEvents(ctx context.Context, limit int) ([]model.EventSummary, error) {
+	query := `
+		SELECT e.id, e.name, COUNT(p.id) as photo_count, b.name as business_name
+		FROM events e
+		JOIN businesses b ON e.business_id = b.id
+		LEFT JOIN photos p ON e.id = p.event_id AND p.status = 'active'
+		GROUP BY e.id, e.name, b.name
+		ORDER BY photo_count DESC
+		LIMIT $1
+	`
+	rows, err := r.db.pool.Query(ctx, query, limit)
+	if err != nil {
+		return nil, fmt.Errorf("fetching top events: %w", err)
+	}
+	defer rows.Close()
+
+	var events []model.EventSummary
+	for rows.Next() {
+		var e model.EventSummary
+		if err := rows.Scan(&e.EventID, &e.EventName, &e.PhotoCount, &e.BusinessName); err != nil {
+			return nil, err
+		}
+		events = append(events, e)
+	}
+	return events, nil
 }

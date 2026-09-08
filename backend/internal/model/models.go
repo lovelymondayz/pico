@@ -126,4 +126,18 @@ type AdminStats struct {
 	TotalPhotos     int     `json:"total_photos"`
 	TotalStorageMB  float64 `json:"total_storage_mb"`
 	ActivePlans     int     `json:"active_plans"`
+	RecentUploads   []UploadTrend `json:"recent_uploads,omitempty"`
+	TopEvents       []EventSummary `json:"top_events,omitempty"`
+}
+
+type UploadTrend struct {
+	Date  string `json:"date"`
+	Count int    `json:"count"`
+}
+
+type EventSummary struct {
+	EventID    int64  `json:"event_id"`
+	EventName  string `json:"event_name"`
+	PhotoCount int    `json:"photo_count"`
+	BusinessName string `json:"business_name"`
 }
