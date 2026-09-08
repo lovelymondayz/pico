@@ -87,6 +87,7 @@ func main() {
 	{
 		business.GET("/events", h.ListBusinessEvents)
 		business.POST("/events", h.CreateEvent)
+		business.GET("/events/:id", h.GetEventByID)
 		business.PUT("/events/:id", h.UpdateEvent)
 		business.DELETE("/events/:id", h.CloseEvent)
 		business.GET("/events/:id/photos", h.ListEventPhotos)

@@ -44,6 +44,13 @@ export async function getEvent(slug: string) {
   return handleRes(res)
 }
 
+export async function getEventByID(id: number) {
+  const res = await fetch(`${API_BASE}/business/events/${id}`, {
+    headers: { ...authHeaders() },
+  })
+  return handleRes(res)
+}
+
 export async function registerGuest(slug: string, name: string) {
   const res = await fetch(`${API_BASE}/e/${slug}/guest`, {
     method: 'POST',

@@ -4,6 +4,7 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import EventCreate from './pages/EventCreate'
+import EventDetail from './pages/EventDetail'
 import EventGallery from './pages/EventGallery'
 import Admin from './pages/Admin'
 import { useAuthStore } from './stores/auth'
@@ -44,6 +45,7 @@ export default function App() {
         <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
         <Route path="/events" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
         <Route path="/events/new" element={<ProtectedRoute><Layout><EventCreate /></Layout></ProtectedRoute>} />
+        <Route path="/events/:id" element={<ProtectedRoute><Layout><EventDetail /></Layout></ProtectedRoute>} />
 
         {/* Admin */}
         <Route path="/admin" element={<AdminRoute><Layout><Admin /></Layout></AdminRoute>} />
