@@ -75,6 +75,7 @@ func main() {
 		public.GET("/e/:slug/photos/stream", h.StreamPhotos)
 		public.POST("/e/:slug/upload", rateLimit.Limit(), h.UploadPhoto)
 		public.GET("/e/:slug/photos/:id", h.GetPhoto)
+		public.GET("/events/:uuid", h.GetEventByUUID)
 		public.GET("/business/events/:id/qr", h.GenerateQR)
 	}
 
@@ -87,8 +88,8 @@ func main() {
 	business.Use(middleware.RequireAuth(services.Auth))
 	{
 		business.GET("/events", h.ListBusinessEvents)
-		business.POST("/events", h.CreateEvent)
 		business.GET("/events/:id", h.GetEventByID)
+		business.POST("/events", h.CreateEvent)
 		business.PUT("/events/:id", h.UpdateEvent)
 		business.DELETE("/events/:id", h.CloseEvent)
 		business.GET("/events/:id/photos", h.ListEventPhotos)

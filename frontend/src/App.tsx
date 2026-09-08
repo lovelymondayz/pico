@@ -45,7 +45,7 @@ export default function App() {
         <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
         <Route path="/events" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
         <Route path="/events/new" element={<ProtectedRoute><Layout><EventCreate /></Layout></ProtectedRoute>} />
-        <Route path="/events/:id" element={<ProtectedRoute><Layout><EventDetail /></Layout></ProtectedRoute>} />
+        <Route path="/events/:uuid" element={<ProtectedRoute><Layout><EventDetail /></Layout></ProtectedRoute>} />
 
         {/* Admin */}
         <Route path="/admin" element={<AdminRoute><Layout><Admin /></Layout></AdminRoute>} />

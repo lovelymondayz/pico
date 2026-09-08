@@ -50,6 +50,7 @@ type Subscription struct {
 // Event represents a photo-sharing event
 type Event struct {
 	ID              int64     `json:"id"`
+	UUID            string    `json:"uuid"`
 	BusinessID      int64     `json:"business_id"`
 	Name            string    `json:"name"`
 	Slug            string    `json:"slug"`

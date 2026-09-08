@@ -217,6 +217,10 @@ func (es *EventService) GetByID(ctx context.Context, id int64) (*model.Event, er
 	return es.s.repo.Events.GetByID(ctx, id)
 }
 
+func (es *EventService) GetByUUID(ctx context.Context, uuid string) (*model.Event, error) {
+	return es.s.repo.Events.GetByUUID(ctx, uuid)
+}
+
 func (es *EventService) GetByBusinessID(ctx context.Context, businessID int64, limit, offset int) ([]model.Event, error) {
 	return es.s.repo.Events.GetByBusinessID(ctx, businessID, limit, offset)
 }

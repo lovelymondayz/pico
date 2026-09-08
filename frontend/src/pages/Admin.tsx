@@ -82,22 +82,26 @@ export default function Admin() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <p className="text-sm font-medium text-gray-600">Total Businesses</p>
-          <p className="mt-2 text-3xl font-bold text-gray-900">{stats?.total_businesses || businesses.length}</p>
+          <p className="mt-2 text-3xl font-bold text-gray-900">{stats?.total_businesses ?? 0}</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <p className="text-sm font-medium text-gray-600">Total Events</p>
-          <p className="mt-2 text-3xl font-bold text-gray-900">{stats?.total_events || 0}</p>
+          <p className="mt-2 text-3xl font-bold text-gray-900">{stats?.total_events ?? 0}</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <p className="text-sm font-medium text-gray-600">Total Photos</p>
-          <p className="mt-2 text-3xl font-bold text-gray-900">{stats?.total_photos || 0}</p>
+          <p className="mt-2 text-3xl font-bold text-gray-900">{stats?.total_photos ?? 0}</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <p className="text-sm font-medium text-gray-600">Storage Used</p>
-          <p className="mt-2 text-3xl font-bold text-gray-900">{stats?.total_storage_mb || 0} MB</p>
+          <p className="text-sm font-medium text-gray-600">Storage</p>
+          <p className="mt-2 text-3xl font-bold text-gray-900">{(stats?.total_storage_mb ?? 0).toFixed(1)} <span className="text-lg font-normal text-gray-500">MB</span></p>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <p className="text-sm font-medium text-gray-600">Active Plans</p>
+          <p className="mt-2 text-3xl font-bold text-purple-600">{stats?.active_plans ?? 0}</p>
         </div>
       </div>
 
