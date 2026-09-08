@@ -90,6 +90,8 @@ func main() {
 		business.PUT("/events/:id", h.UpdateEvent)
 		business.DELETE("/events/:id", h.CloseEvent)
 		business.GET("/events/:id/photos", h.ListEventPhotos)
+		business.DELETE("/events/:id/photos/:photoID", h.DeletePhoto)
+		business.POST("/events/:id/cover", h.UploadCoverImage)
 		business.GET("/events/:id/download", h.DownloadPhotos)
 		business.GET("/events/:id/qr", h.GenerateQR)
 		business.GET("/stats", h.BusinessStats)

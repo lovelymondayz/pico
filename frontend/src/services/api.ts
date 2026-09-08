@@ -105,12 +105,42 @@ export async function updateEvent(id: number, data: any) {
   return handleRes(res)
 }
 
+export async function deletePhoto(eventId: number, photoId: number) {
+  const res = await fetch(`${API_BASE}/business/events/${eventId}/photos/${photoId}`, {
+    method: 'DELETE',
+    headers: { ...authHeaders() },
+  })
+  return handleRes(res)
+}
+
+export async function uploadCoverImage(eventId: number, file: File) {
+  const formData = new FormData()
+  formData.append('cover', file)
+  const res = await fetch(`${API_BASE}/business/events/${eventId}/cover`, {
+    method: 'POST',
+    headers: { ...authHeaders() },
+    body: formData,
+  })
+  return handleRes(res)
+}
+
+export async function downloadPhotos(id: number) {
+  const res = await fetch(`${API_BASE}/business/events/${id}/download`, {
+    headers: { ...authHeaders() },
+  })
+  return handleRes(res)
+}
+
 export async function closeEvent(id: number) {
   const res = await fetch(`${API_BASE}/business/events/${id}`, {
     method: 'DELETE',
     headers: { ...authHeaders() },
   })
   return handleRes(res)
+}
+
+export async function deleteEvent(id: number) {
+  return closeEvent(id)
 }
 
 export async function generateQR(id: number) {

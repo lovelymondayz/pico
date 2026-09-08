@@ -49,6 +49,10 @@ func (s *Services) GetStorage() storage.Storage {
 	return s.storage
 }
 
+func (s *Services) GetPhotoProcessor() *util.ImageProcessor {
+	return s.photoProc
+}
+
 // Auth helper methods
 func (s *Services) GetUserByEmail(ctx context.Context, email string) (*model.User, error) {
 	return s.repo.Users.GetByEmail(ctx, email)
@@ -342,6 +346,45 @@ func (ps *PhotoService) CountByEvent(ctx context.Context, eventID int64) (int, e
 
 func (ps *PhotoService) GetByID(ctx context.Context, id int64) (*model.Photo, error) {
 	return ps.s.repo.Photos.GetByID(ctx, id)
+}
+
+func (ps *PhotoService) Delete(ctx context.Context, photoID, businessID int64) error {
+	photo, err := ps.s.repo.Photos.GetByID(ctx, photoID)
+	if err != nil {
+		return fmt.Errorf("photo not found")
+	}
+
+	event, err := ps.s.repo.Events.GetByID(ctx, photo.EventID)
+	if err != nil {
+		return fmt.Errorf("event not found")
+	}
+
+	if event.BusinessID != businessID {
+		return fmt.Errorf("access denied")
+	}
+
+	// Delete from Immich if applicable
+	if photo.ImmichAssetID != "" {
+		if immichStore, ok := ps.s.storage.(*storage.ImmichStorage); ok {
+			if err := immichStore.Delete(photo.ImmichAssetID); err != nil {
+				return fmt.Errorf("deleting from Immich: %w", err)
+			}
+		}
+	}
+
+	// Soft delete in DB
+	if err := ps.s.repo.Photos.Delete(ctx, photoID); err != nil {
+		return fmt.Errorf("deleting photo: %w", err)
+	}
+
+	// Decrement guest photo count
+	if photo.GuestID > 0 {
+		if err := ps.s.repo.Guests.DecrementPhotoCount(ctx, photo.GuestID); err != nil {
+			// Log but don't fail
+		}
+	}
+
+	return nil
 }
 
 func (ps *PhotoService) GenerateQR(ctx context.Context, url string, size int) ([]byte, error) {

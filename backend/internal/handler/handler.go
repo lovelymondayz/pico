@@ -6,6 +6,7 @@ import (
 	"pico/internal/config"
 	"pico/internal/model"
 	"pico/internal/service"
+	"pico/internal/storage"
 	"strconv"
 	"time"
 
@@ -471,7 +472,157 @@ func (h *Handler) ListEventPhotos(c *gin.Context) {
 }
 
 func (h *Handler) DownloadPhotos(c *gin.Context) {
-	c.JSON(http.StatusNotImplemented, gin.H{"error": "not yet implemented"})
+	userID := c.GetInt64("userID")
+	eventID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+
+	event, err := h.services.Event.GetByID(c.Request.Context(), eventID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "event not found"})
+		return
+	}
+
+	business, err := h.services.Business.GetByUserID(c.Request.Context(), userID)
+	if err != nil || business.ID != event.BusinessID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
+
+	if !event.AllowDownloads {
+		c.JSON(http.StatusForbidden, gin.H{"error": "downloads not enabled for this event"})
+		return
+	}
+
+	photos, err := h.services.Photo.GetByEvent(c.Request.Context(), eventID, 1000, 0)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch photos"})
+		return
+	}
+
+	if len(photos) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "no photos to download"})
+		return
+	}
+
+	// For Immich photos, return JSON with URLs for client-side download
+	type PhotoDownload struct {
+		URL      string `json:"url"`
+		Filename string `json:"filename"`
+	}
+
+	var downloads []PhotoDownload
+	for _, p := range photos {
+		if p.ImmichAssetID != "" {
+			immichURL := h.services.GetStorage().GetFullPath(p.ImmichAssetID)
+			downloads = append(downloads, PhotoDownload{
+				URL:      immichURL,
+				Filename: p.OriginalFilename,
+			})
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"event_name": event.Name,
+		"count":      len(downloads),
+		"photos":     downloads,
+	})
+}
+
+func (h *Handler) DeletePhoto(c *gin.Context) {
+	userID := c.GetInt64("userID")
+	eventID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	photoID, _ := strconv.ParseInt(c.Param("photoID"), 10, 64)
+
+	event, err := h.services.Event.GetByID(c.Request.Context(), eventID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "event not found"})
+		return
+	}
+
+	business, err := h.services.Business.GetByUserID(c.Request.Context(), userID)
+	if err != nil || business.ID != event.BusinessID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
+
+	if err := h.services.Photo.Delete(c.Request.Context(), photoID, business.ID); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "photo deleted"})
+}
+
+func (h *Handler) UploadCoverImage(c *gin.Context) {
+	userID := c.GetInt64("userID")
+	eventID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+
+	event, err := h.services.Event.GetByID(c.Request.Context(), eventID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "event not found"})
+		return
+	}
+
+	business, err := h.services.Business.GetByUserID(c.Request.Context(), userID)
+	if err != nil || business.ID != event.BusinessID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
+
+	file, header, err := c.Request.FormFile("cover")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "no cover image provided"})
+		return
+	}
+	defer file.Close()
+
+	if header.Size > h.cfg.MaxUploadBytes {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("file too large (max %d MB)", h.cfg.MaxUploadBytes/1024/1024)})
+		return
+	}
+
+	fileBytes := make([]byte, header.Size)
+	if _, err := file.Read(fileBytes); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to read file"})
+		return
+	}
+
+	contentType := header.Header.Get("Content-Type")
+	if contentType == "" {
+		contentType = "image/jpeg"
+	}
+
+	processed, _, _, err := h.services.GetPhotoProcessor().ProcessImage(fileBytes, h.cfg.ImageMaxWidth, h.cfg.ImageQuality)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	var coverURL string
+	if immichStore, ok := h.services.GetStorage().(*storage.ImmichStorage); ok {
+		file := storage.BytesToMultipartFile(processed)
+		assetID, err := immichStore.Save(file, header.Filename)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		coverURL = fmt.Sprintf("%s/api/assets/%s/original", immichStore.GetAPIURL(), assetID)
+	} else {
+		coverPath := fmt.Sprintf("covers/%d.jpg", eventID)
+		fullPath := h.services.GetStorage().GetFullPath(coverPath)
+		if err := h.services.GetStorage().SaveBytes(fullPath, processed); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		coverURL = fmt.Sprintf("/photos/%s", coverPath)
+	}
+
+	event.CoverImageURL = coverURL
+	if err := h.services.Event.Update(c.Request.Context(), event); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"cover_image_url": coverURL})
 }
 
 func (h *Handler) GenerateQR(c *gin.Context) {

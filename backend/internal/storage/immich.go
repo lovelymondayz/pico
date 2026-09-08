@@ -64,12 +64,14 @@ func (s *ImmichStorage) SaveBytes(path string, data []byte) error {
 
 // Delete removes an asset from Immich
 func (s *ImmichStorage) Delete(assetID string) error {
-	url := fmt.Sprintf("%s/api/assets/%s", s.config.APIURL, assetID)
-	req, err := http.NewRequest(http.MethodDelete, url, nil)
+	url := fmt.Sprintf("%s/api/assets", s.config.APIURL)
+	body := fmt.Sprintf(`{"ids":["%s"]}`, assetID)
+	req, err := http.NewRequest(http.MethodDelete, url, bytes.NewBufferString(body))
 	if err != nil {
 		return fmt.Errorf("creating delete request: %w", err)
 	}
 	req.Header.Set("x-api-key", s.config.APIKey)
+	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := s.client.Do(req)
 	if err != nil {
@@ -77,9 +79,9 @@ func (s *ImmichStorage) Delete(assetID string) error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
-		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("Immich delete failed (%d): %s", resp.StatusCode, string(body))
+	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
+		respBody, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("Immich delete failed (%d): %s", resp.StatusCode, string(respBody))
 	}
 	return nil
 }
@@ -244,6 +246,11 @@ func (s *ImmichStorage) addToAlbum(assetID string) error {
 		return fmt.Errorf("adding to album failed (%d): %s", resp.StatusCode, string(respBody))
 	}
 	return nil
+}
+
+// GetAPIURL returns the Immich API URL
+func (s *ImmichStorage) GetAPIURL() string {
+	return s.config.APIURL
 }
 
 // Ensure ImmichStorage implements the Storage interface

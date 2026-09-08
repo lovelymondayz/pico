@@ -416,6 +416,11 @@ func (r *GuestRepo) IncrementPhotoCount(ctx context.Context, guestID int64) erro
 	return err
 }
 
+func (r *GuestRepo) DecrementPhotoCount(ctx context.Context, guestID int64) error {
+	_, err := r.db.pool.Exec(ctx, `UPDATE guests SET photo_count = GREATEST(0, photo_count - 1), last_active_at = NOW() WHERE id = $1`, guestID)
+	return err
+}
+
 func (r *GuestRepo) CountByEvent(ctx context.Context, eventID int64) (int, error) {
 	var count int
 	err := r.db.pool.QueryRow(ctx, `SELECT COUNT(*) FROM guests WHERE event_id = $1`, eventID).Scan(&count)

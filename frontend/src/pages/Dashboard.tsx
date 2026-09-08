@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { getBusinessEvents, businessStats, generateQR } from '../services/api'
+import { getBusinessEvents, businessStats, generateQR, deleteEvent, closeEvent } from '../services/api'
 import { useAuthStore } from '../stores/auth'
 
 interface Event {
@@ -13,13 +13,6 @@ interface Event {
   total_photo_limit: number
   guest_photo_limit: number
 }
-
-const DUMMY_EVENTS: Event[] = [
-  { id: 1, name: 'Sarah & Michael Wedding', slug: 'sarah-michael-wedding', photo_count: 47, status: 'active', created_at: '2026-08-18T10:00:00Z', total_photo_limit: 500, guest_photo_limit: 20 },
-  { id: 2, name: 'Company Annual Party 2026', slug: 'company-party-2026-1787092830', photo_count: 128, status: 'active', created_at: '2026-08-17T14:30:00Z', total_photo_limit: 1000, guest_photo_limit: 30 },
-  { id: 3, name: 'Product Launch Event', slug: 'product-launch-1787092831', photo_count: 0, status: 'active', created_at: '2026-08-16T09:00:00Z', total_photo_limit: 200, guest_photo_limit: 10 },
-  { id: 4, name: 'Summer Beach Party', slug: 'summer-beach-1787092832', photo_count: 312, status: 'closed', created_at: '2026-07-20T18:00:00Z', total_photo_limit: 500, guest_photo_limit: 20 },
-]
 
 export default function Dashboard() {
   const [events, setEvents] = useState<Event[]>([])
@@ -36,16 +29,13 @@ export default function Dashboard() {
   const loadData = async () => {
     try {
       const [eventsRes, statsRes] = await Promise.all([
-        getBusinessEvents().catch(() => ({ events: [] })),
-        businessStats().catch(() => null),
+        getBusinessEvents(),
+        businessStats(),
       ])
-      const apiEvents = eventsRes.events || []
-      // Use dummy data if API returns empty
-      setEvents(apiEvents.length > 0 ? apiEvents : DUMMY_EVENTS)
-      setStats(statsRes || { total_photos: 287, total_storage_mb: 145.2, active_events: 3, total_events: 4 })
-    } catch {
-      setEvents(DUMMY_EVENTS)
-      setStats({ total_photos: 287, total_storage_mb: 145.2, active_events: 3, total_events: 4 })
+      setEvents(eventsRes.events || [])
+      setStats(statsRes?.stats || null)
+    } catch (err: any) {
+      setError(err.message || 'Failed to load dashboard')
     } finally {
       setLoading(false)
     }
@@ -64,7 +54,19 @@ export default function Dashboard() {
     setQrEvent(null)
   }
 
+  const handleDelete = async (id: number) => {
+    if (!confirm('Are you sure you want to close this event? This cannot be undone.')) return
+    try {
+      await closeEvent(id)
+      setEvents(events.filter(e => e.id !== id))
+    } catch (err: any) {
+      alert(err.message || 'Failed to close event')
+    }
+  }
+
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div></div>
+
+  if (error) return <div className="max-w-2xl mx-auto"><div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">{error}</div></div>
 
   return (
     <div className="space-y-8">
@@ -83,19 +85,19 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <p className="text-sm font-medium text-gray-600">Total Events</p>
-          <p className="mt-2 text-3xl font-bold text-gray-900">{stats?.total_events || events.length}</p>
+          <p className="mt-2 text-3xl font-bold text-gray-900">{stats?.total_events ?? events.length}</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <p className="text-sm font-medium text-gray-600">Active Events</p>
-          <p className="mt-2 text-3xl font-bold text-purple-600">{stats?.active_events || events.filter(e => e.status === 'active').length}</p>
+          <p className="mt-2 text-3xl font-bold text-purple-600">{stats?.active_events ?? events.filter(e => e.status === 'active').length}</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <p className="text-sm font-medium text-gray-600">Total Photos</p>
-          <p className="mt-2 text-3xl font-bold text-gray-900">{stats?.total_photos || events.reduce((a, e) => a + (e.photo_count || 0), 0)}</p>
+          <p className="mt-2 text-3xl font-bold text-gray-900">{stats?.total_photos ?? 0}</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <p className="text-sm font-medium text-gray-600">Storage Used</p>
-          <p className="mt-2 text-3xl font-bold text-gray-900">{stats?.total_storage_mb || 145.2} MB</p>
+          <p className="text-sm font-medium text-gray-600">Remaining Quota</p>
+          <p className="mt-2 text-3xl font-bold text-gray-900">{stats?.remaining_photos ?? '—'}</p>
         </div>
       </div>
 
@@ -124,9 +126,12 @@ export default function Dashboard() {
                 >
                   {qrEvent === event.id ? '...' : 'QR'}
                 </button>
-                <Link to={`/e/${event.slug}`} className="text-sm text-gray-600 hover:text-gray-900">
-                  View
-                </Link>
+                <button
+                  onClick={() => handleDelete(event.id)}
+                  className="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded-md"
+                >
+                  Close
+                </button>
               </div>
             </div>
           ))}
