@@ -393,6 +393,10 @@ func (ps *PhotoService) GetByUUID(ctx context.Context, uuid string) (*model.Phot
 	return ps.s.repo.Photos.GetByUUID(ctx, uuid)
 }
 
+func (ps *PhotoService) GetByGuest(ctx context.Context, guestID int64, limit, offset int) ([]model.Photo, error) {
+	return ps.s.repo.Photos.GetByGuest(ctx, guestID, limit, offset)
+}
+
 func (ps *PhotoService) Delete(ctx context.Context, photoID, businessID int64) error {
 	photo, err := ps.s.repo.Photos.GetByID(ctx, photoID)
 	if err != nil {

@@ -469,6 +469,25 @@ func (r *PhotoRepo) GetByID(ctx context.Context, id int64) (*model.Photo, error)
 	return &photo, nil
 }
 
+func (r *PhotoRepo) GetByGuest(ctx context.Context, guestID int64, limit, offset int) ([]model.Photo, error) {
+	query := `SELECT id, event_id, guest_id, storage_path, thumbnail_path, url, thumbnail_url, COALESCE(immich_asset_id, ''), original_filename, file_size_bytes, mime_type, width, height, status, created_at FROM photos WHERE guest_id = $1 AND status = 'active' ORDER BY created_at DESC LIMIT $2 OFFSET $3`
+	rows, err := r.db.pool.Query(ctx, query, guestID, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("fetching guest photos: %w", err)
+	}
+	defer rows.Close()
+
+	var photos []model.Photo
+	for rows.Next() {
+		var photo model.Photo
+		if err := rows.Scan(&photo.ID, &photo.EventID, &photo.GuestID, &photo.StoragePath, &photo.ThumbnailPath, &photo.URL, &photo.ThumbnailURL, &photo.ImmichAssetID, &photo.OriginalFilename, &photo.FileSizeBytes, &photo.MimeType, &photo.Width, &photo.Height, &photo.Status, &photo.CreatedAt); err != nil {
+			return nil, err
+		}
+		photos = append(photos, photo)
+	}
+	return photos, nil
+}
+
 func (r *PhotoRepo) GetByUUID(ctx context.Context, uuid string) (*model.Photo, error) {
 	query := `SELECT id, event_id, guest_id, storage_path, thumbnail_path, url, thumbnail_url, COALESCE(immich_asset_id, ''), original_filename, file_size_bytes, mime_type, width, height, status, created_at FROM photos WHERE uuid = $1`
 	var photo model.Photo

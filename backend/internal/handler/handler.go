@@ -187,6 +187,47 @@ func (h *Handler) ListPhotos(c *gin.Context) {
 	})
 }
 
+func (h *Handler) ListMyPhotos(c *gin.Context) {
+	slug := c.Param("slug")
+	event, err := h.services.Event.GetBySlug(c.Request.Context(), slug)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "event not found"})
+		return
+	}
+
+	// Get guest token from header or query
+	guestToken := c.GetHeader("X-Guest-Token")
+	if guestToken == "" {
+		guestToken = c.Query("token")
+	}
+	if guestToken == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "guest token required"})
+		return
+	}
+
+	guest, err := h.services.Guest.GetByToken(c.Request.Context(), event.ID, guestToken)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid guest token"})
+		return
+	}
+
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "30"))
+	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+
+	photos, err := h.services.Photo.GetByGuest(c.Request.Context(), guest.ID, limit, offset)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch photos"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"photos": photos,
+		"total":  len(photos),
+		"limit":  limit,
+		"offset": offset,
+	})
+}
+
 func (h *Handler) StreamPhotos(c *gin.Context) {
 	slug := c.Param("slug")
 	event, err := h.services.Event.GetBySlug(c.Request.Context(), slug)

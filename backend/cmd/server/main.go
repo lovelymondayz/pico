@@ -72,6 +72,7 @@ func main() {
 		public.GET("/e/:slug", h.GetEvent)
 		public.POST("/e/:slug/guest", h.RegisterGuest)
 		public.GET("/e/:slug/photos", h.ListPhotos)
+		public.GET("/e/:slug/photos/mine", h.ListMyPhotos)
 		public.GET("/e/:slug/photos/stream", h.StreamPhotos)
 		public.POST("/e/:slug/upload", rateLimit.Limit(), h.UploadPhoto)
 		public.GET("/e/:slug/photos/:id", h.GetPhoto)

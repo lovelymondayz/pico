@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
-import { getEvent, registerGuest, listPhotos, uploadPhoto, searchPhotos } from '../services/api'
+import { getEvent, registerGuest, listPhotos, uploadPhoto, searchPhotos, listMyPhotos } from '../services/api'
 
 interface Photo {
   id: number
@@ -22,6 +22,7 @@ export default function EventGallery() {
   const [uploading, setUploading] = useState(false)
   const [lightbox, setLightbox] = useState<Photo | null>(null)
   const [showUpload, setShowUpload] = useState(false)
+  const [showMyPhotos, setShowMyPhotos] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState('newest')
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -32,7 +33,7 @@ export default function EventGallery() {
 
   useEffect(() => {
     if (event?.id) loadPhotos()
-  }, [event?.id, searchQuery])
+  }, [event?.id, searchQuery, showMyPhotos])
 
   const loadEvent = async () => {
     try {
@@ -48,7 +49,9 @@ export default function EventGallery() {
   const loadPhotos = async () => {
     try {
       let res
-      if (searchQuery.trim()) {
+      if (showMyPhotos && guestToken) {
+        res = await listMyPhotos(slug!, guestToken)
+      } else if (searchQuery.trim()) {
         res = await searchPhotos(slug!, searchQuery)
       } else {
         res = await listPhotos(slug!)
@@ -146,6 +149,16 @@ export default function EventGallery() {
                 className="px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors sm:hidden"
               >
                 📷 Camera
+              </button>
+              <button
+                onClick={() => setShowMyPhotos(!showMyPhotos)}
+                className={`px-6 py-3 rounded-lg font-medium transition-colors ${
+                  showMyPhotos
+                    ? 'bg-purple-100 text-purple-700 border border-purple-300'
+                    : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                {showMyPhotos ? '📷 All Photos' : '📷 My Photos'}
               </button>
             </div>
           </div>
