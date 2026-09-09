@@ -384,8 +384,8 @@ func (r *EventRepo) CountActive(ctx context.Context, businessID int64) (int, err
 }
 
 func (r *EventRepo) Update(ctx context.Context, event *model.Event) error {
-	query := `UPDATE events SET name = $1, slug = $2, description = $3, cover_image_url = $4, start_date = $5, end_date = $6, status = $7, total_photo_limit = $8, guest_photo_limit = $9, allow_downloads = $10, updated_at = NOW() WHERE id = $11`
-	_, err := r.db.pool.Exec(ctx, query, event.Name, event.Slug, event.Description, event.CoverImageURL, event.StartDate, event.EndDate, event.Status, event.TotalPhotoLimit, event.GuestPhotoLimit, event.AllowDownloads, event.ID)
+	query := `UPDATE events SET name = $1, slug = $2, description = $3, cover_image_url = $4, start_date = $5, end_date = $6, status = $7, total_photo_limit = $8, guest_photo_limit = $9, allow_downloads = $10, immich_album_id = $11, updated_at = NOW() WHERE id = $12`
+	_, err := r.db.pool.Exec(ctx, query, event.Name, event.Slug, event.Description, event.CoverImageURL, event.StartDate, event.EndDate, event.Status, event.TotalPhotoLimit, event.GuestPhotoLimit, event.AllowDownloads, event.ImmichAlbumID, event.ID)
 	return err
 }
 

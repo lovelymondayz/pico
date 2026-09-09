@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { createEvent, uploadCoverImage } from '../services/api'
+import { createEvent } from '../services/api'
 
 export default function EventCreate() {
   const [name, setName] = useState('')
@@ -10,7 +10,6 @@ export default function EventCreate() {
   const [totalLimit, setTotalLimit] = useState(100)
   const [guestLimit, setGuestLimit] = useState(20)
   const [allowDownloads, setAllowDownloads] = useState(true)
-  const [coverImage, setCoverImage] = useState<File | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
@@ -29,9 +28,6 @@ export default function EventCreate() {
         guest_photo_limit: guestLimit,
         allow_downloads: allowDownloads,
       })
-      if (coverImage && res.event.id) {
-        await uploadCoverImage(res.event.id, coverImage)
-      }
       navigate(`/events/${res.event.uuid}`)
     } catch (err: any) {
       setError(err.message || 'Failed to create event')
@@ -119,16 +115,6 @@ export default function EventCreate() {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
               />
             </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Cover Image</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => setCoverImage(e.target.files?.[0] || null)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
-            />
-            <p className="text-xs text-gray-500 mt-1">Optional. JPG, PNG, WebP. Max 5MB.</p>
           </div>
           <div className="flex items-center">
             <input
