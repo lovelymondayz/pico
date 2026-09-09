@@ -95,10 +95,10 @@ func (r *UserRepo) Create(ctx context.Context, email, passwordHash, name, role s
 }
 
 func (r *UserRepo) GetByEmail(ctx context.Context, email string) (*model.User, error) {
-	query := `SELECT id, email, password_hash, name, role, created_at, updated_at FROM users WHERE email = $1`
+	query := `SELECT id, email, password_hash, name, role, created_at FROM users WHERE email = $1`
 	var user model.User
 	err := r.db.pool.QueryRow(ctx, query, email).Scan(
-		&user.ID, &user.Email, &user.PasswordHash, &user.Name, &user.Role, &user.CreatedAt, &user.UpdatedAt,
+		&user.ID, &user.Email, &user.PasswordHash, &user.Name, &user.Role, &user.CreatedAt,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -110,10 +110,10 @@ func (r *UserRepo) GetByEmail(ctx context.Context, email string) (*model.User, e
 }
 
 func (r *UserRepo) GetByID(ctx context.Context, id int64) (*model.User, error) {
-	query := `SELECT id, email, password_hash, name, role, created_at, updated_at FROM users WHERE id = $1`
+	query := `SELECT id, email, password_hash, name, role, created_at FROM users WHERE id = $1`
 	var user model.User
 	err := r.db.pool.QueryRow(ctx, query, id).Scan(
-		&user.ID, &user.Email, &user.PasswordHash, &user.Name, &user.Role, &user.CreatedAt, &user.UpdatedAt,
+		&user.ID, &user.Email, &user.PasswordHash, &user.Name, &user.Role, &user.CreatedAt,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("fetching user: %w", err)

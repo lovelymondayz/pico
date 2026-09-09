@@ -4,13 +4,12 @@ import "time"
 
 // User represents platform administrators and business owners
 type User struct {
-	ID           int64     `json:"id"`
-	Email        string    `json:"email"`
-	PasswordHash string    `json:"-"`
-	Name         string    `json:"name"`
-	Role         string    `json:"role"` // "admin", "business"
+	ID           int64  `json:"id"`
+	Email        string `json:"email"`
+	PasswordHash string `json:"-"`
+	Name         string `json:"name"`
+	Role         string `json:"role"` // "admin", "business"`
 	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
 }
 
 // Business represents a business account
