@@ -19,7 +19,6 @@ type Business struct {
 	UserID    int64     `json:"user_id"`
 	Name      string    `json:"name"`
 	Slug      string    `json:"slug"`
-	LogoURL   string    `json:"logo_url,omitempty"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
@@ -55,7 +54,6 @@ type Event struct {
 	Name            string    `json:"name"`
 	Slug            string    `json:"slug"`
 	Description     string    `json:"description,omitempty"`
-	CoverImageURL   string    `json:"cover_image_url,omitempty"`
 	ImmichAlbumID   string    `json:"immich_album_id,omitempty"`
 	PhotoCount      int       `json:"photo_count"`
 	StartDate       time.Time `json:"start_date"`
@@ -76,7 +74,6 @@ type Guest struct {
 	Name         string    `json:"name,omitempty"`
 	PhotoCount   int       `json:"photo_count"`
 	CreatedAt    time.Time `json:"created_at"`
-	LastActiveAt time.Time `json:"last_active_at"`
 }
 
 // Photo represents an uploaded photo

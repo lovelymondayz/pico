@@ -697,76 +697,7 @@ func (h *Handler) DeletePhoto(c *gin.Context) {
 }
 
 func (h *Handler) UploadCoverImage(c *gin.Context) {
-	userID := c.GetInt64("userID")
-	eventID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
-
-	event, err := h.services.Event.GetByID(c.Request.Context(), eventID)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "event not found"})
-		return
-	}
-
-	business, err := h.services.Business.GetByUserID(c.Request.Context(), userID)
-	if err != nil || business.ID != event.BusinessID {
-		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
-		return
-	}
-
-	file, header, err := c.Request.FormFile("cover")
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "no cover image provided"})
-		return
-	}
-	defer file.Close()
-
-	if header.Size > h.cfg.MaxUploadBytes {
-		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("file too large (max %d MB)", h.cfg.MaxUploadBytes/1024/1024)})
-		return
-	}
-
-	fileBytes := make([]byte, header.Size)
-	if _, err := file.Read(fileBytes); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to read file"})
-		return
-	}
-
-	contentType := header.Header.Get("Content-Type")
-	if contentType == "" {
-		contentType = "image/jpeg"
-	}
-
-	processed, _, _, err := h.services.GetPhotoProcessor().ProcessImage(fileBytes, h.cfg.ImageMaxWidth, h.cfg.ImageQuality)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	var coverURL string
-	if immichStore, ok := h.services.GetStorage().(*storage.ImmichStorage); ok {
-		file := storage.BytesToMultipartFile(processed)
-		assetID, err := immichStore.Save(file, header.Filename)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		coverURL = fmt.Sprintf("%s/api/assets/%s/original", immichStore.GetAPIURL(), assetID)
-	} else {
-		coverPath := fmt.Sprintf("covers/%d.jpg", eventID)
-		fullPath := h.services.GetStorage().GetFullPath(coverPath)
-		if err := h.services.GetStorage().SaveBytes(fullPath, processed); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		coverURL = fmt.Sprintf("/photos/%s", coverPath)
-	}
-
-	event.CoverImageURL = coverURL
-	if err := h.services.Event.Update(c.Request.Context(), event); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"cover_image_url": coverURL})
+	c.JSON(http.StatusGone, gin.H{"error": "cover image upload is no longer supported"})
 }
 
 func (h *Handler) GenerateQR(c *gin.Context) {
