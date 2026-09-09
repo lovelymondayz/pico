@@ -407,18 +407,11 @@ func (h *Handler) GetEventByID(c *gin.Context) {
 }
 
 func (h *Handler) GetEventByUUID(c *gin.Context) {
-	userID := c.GetInt64("userID")
 	uuid := c.Param("uuid")
 
 	event, err := h.services.Event.GetByUUID(c.Request.Context(), uuid)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "event not found"})
-		return
-	}
-
-	business, err := h.services.Business.GetByUserID(c.Request.Context(), userID)
-	if err != nil || business.ID != event.BusinessID {
-		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
 
