@@ -57,6 +57,7 @@ type Event struct {
 	Description     string    `json:"description,omitempty"`
 	CoverImageURL   string    `json:"cover_image_url,omitempty"`
 	ImmichAlbumID   string    `json:"immich_album_id,omitempty"`
+	PhotoCount      int       `json:"photo_count"`
 	StartDate       time.Time `json:"start_date"`
 	EndDate         time.Time `json:"end_date"`
 	Status          string    `json:"status"` // "active", "closed", "archived"

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { getBusinessEvents, businessStats, generateQR, deleteEvent, closeEvent } from '../services/api'
+import { getBusinessEvents, businessStats, closeEvent } from '../services/api'
 import { useAuthStore } from '../stores/auth'
 
 interface Event {
@@ -20,7 +20,6 @@ export default function Dashboard() {
   const [stats, setStats] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [qrEvent, setQrEvent] = useState<number | null>(null)
   const { user, business } = useAuthStore()
 
   useEffect(() => {
@@ -40,19 +39,6 @@ export default function Dashboard() {
     } finally {
       setLoading(false)
     }
-  }
-
-  const handleQR = async (id: number) => {
-    setQrEvent(id)
-    try {
-      const res = await generateQR(id)
-      if (res.qr_url) {
-        window.open(res.qr_url, '_blank')
-      }
-    } catch {
-      // Silently fail
-    }
-    setQrEvent(null)
   }
 
   const handleClose = async (id: number) => {
@@ -120,13 +106,6 @@ export default function Dashboard() {
                 <span className={`px-2 py-1 text-xs rounded-full ${event.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
                   {event.status}
                 </span>
-                <button
-                  onClick={() => handleQR(event.id)}
-                  disabled={qrEvent === event.id}
-                  className="px-3 py-1 text-sm text-purple-600 hover:bg-purple-50 rounded-md disabled:opacity-50"
-                >
-                  {qrEvent === event.id ? '...' : 'QR'}
-                </button>
                 <button
                   onClick={() => handleClose(event.id)}
                   className="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded-md"

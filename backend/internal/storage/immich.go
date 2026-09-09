@@ -137,6 +137,29 @@ func (s *ImmichStorage) ReadFile(assetID string) ([]byte, error) {
 	return io.ReadAll(resp.Body)
 }
 
+// ReadThumbnail downloads the thumbnail bytes from Immich
+func (s *ImmichStorage) ReadThumbnail(assetID string) ([]byte, error) {
+	url := fmt.Sprintf("%s/api/assets/%s/thumbnail", s.config.APIURL, assetID)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating thumbnail request: %w", err)
+	}
+	req.Header.Set("x-api-key", s.config.APIKey)
+
+	resp, err := s.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("downloading thumbnail: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("Immich thumbnail failed (%d): %s", resp.StatusCode, string(body))
+	}
+
+	return io.ReadAll(resp.Body)
+}
+
 // GetAssetInfo fetches asset metadata from Immich
 func (s *ImmichStorage) GetAssetInfo(assetID string) (*ImmichAsset, error) {
 	url := fmt.Sprintf("%s/api/assets/%s", s.config.APIURL, assetID)

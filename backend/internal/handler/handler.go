@@ -995,9 +995,9 @@ func (h *Handler) ServeThumbnail(c *gin.Context) {
 		photo, err := h.services.Photo.GetByID(c.Request.Context(), id)
 		if err == nil {
 			if photo.ImmichAssetID != "" {
-				data, err := h.services.GetStorage().(*storage.ImmichStorage).ReadFile(photo.ImmichAssetID)
+				data, err := h.services.GetStorage().(*storage.ImmichStorage).ReadThumbnail(photo.ImmichAssetID)
 				if err == nil {
-					c.Data(http.StatusOK, photo.MimeType, data)
+					c.Data(http.StatusOK, "image/jpeg", data)
 					return
 				}
 			}
@@ -1015,9 +1015,9 @@ func (h *Handler) ServeThumbnail(c *gin.Context) {
 	}
 
 	if photo.ImmichAssetID != "" {
-		data, err := h.services.GetStorage().(*storage.ImmichStorage).ReadFile(photo.ImmichAssetID)
+		data, err := h.services.GetStorage().(*storage.ImmichStorage).ReadThumbnail(photo.ImmichAssetID)
 		if err == nil {
-			c.Data(http.StatusOK, photo.MimeType, data)
+			c.Data(http.StatusOK, "image/jpeg", data)
 			return
 		}
 	}
