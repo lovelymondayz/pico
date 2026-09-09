@@ -18,7 +18,7 @@ COPY --from=builder /app/server .
 
 EXPOSE 8082
 
-CMD ["./server"]
-
 # Run as non-root
 USER 1000:1000
+
+CMD ["./server"]
