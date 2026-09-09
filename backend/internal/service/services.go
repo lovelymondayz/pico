@@ -354,6 +354,23 @@ func (ps *PhotoService) Upload(ctx context.Context, eventID, guestID int64, file
 	return ps.s.repo.Photos.Create(ctx, photo)
 }
 
+func (ps *PhotoService) UploadWithAlbum(ctx context.Context, eventID int64, guestID int64, fileBytes []byte, filename, contentType string) (*model.Photo, error) {
+	// Upload the photo
+	photo, err := ps.Upload(ctx, eventID, guestID, fileBytes, filename, contentType)
+	if err != nil {
+		return nil, err
+	}
+
+	// Add to Immich album
+	if event, err := ps.s.repo.Events.GetByID(ctx, eventID); err == nil && event.ImmichAlbumID != "" {
+		if immichStore, ok := ps.s.storage.(*storage.ImmichStorage); ok {
+			immichStore.AddToAlbum(photo.ImmichAssetID, event.ImmichAlbumID)
+		}
+	}
+
+	return photo, nil
+}
+
 func (ps *PhotoService) GetByEvent(ctx context.Context, eventID int64, limit, offset int) ([]model.Photo, error) {
 	return ps.s.repo.Photos.GetByEvent(ctx, eventID, limit, offset)
 }

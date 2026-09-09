@@ -283,7 +283,7 @@ func (h *Handler) UploadPhoto(c *gin.Context) {
 		contentType = "image/jpeg"
 	}
 
-	photo, err := h.services.Photo.Upload(c.Request.Context(), event.ID, guest.ID, fileBytes, header.Filename, contentType)
+	photo, err := h.services.Photo.UploadWithAlbum(c.Request.Context(), event.ID, guest.ID, fileBytes, header.Filename, contentType)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
