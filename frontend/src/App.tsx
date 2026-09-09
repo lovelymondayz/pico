@@ -11,7 +11,8 @@ import { useAuthStore } from './stores/auth'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />
+  if (!isAuthenticated) return <Navigate to="/login" replace />
+  return <>{children}</>
 }
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
@@ -43,7 +44,7 @@ export default function App() {
 
         {/* Business */}
         <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
-        <Route path="/events" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
+        <Route path="/events" element={<Navigate to="/dashboard" replace />} />
         <Route path="/events/new" element={<ProtectedRoute><Layout><EventCreate /></Layout></ProtectedRoute>} />
         <Route path="/events/:uuid" element={<ProtectedRoute><Layout><EventDetail /></Layout></ProtectedRoute>} />
 

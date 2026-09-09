@@ -8,7 +8,7 @@ export default function EventDetail() {
   const [photos, setPhotos] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [showQR, setShowQR] = useState(false)
+  const [showQR, setShowQR] = useState(true)
 
   useEffect(() => {
     if (uuid) loadData()
@@ -29,7 +29,7 @@ export default function EventDetail() {
   }
 
   const handleQR = () => {
-    setShowQR(true)
+    setShowQR(prev => !prev)
   }
 
   const handleClose = async () => {

@@ -334,7 +334,7 @@ func (r *EventRepo) GetBySlug(ctx context.Context, slug string) (*model.Event, e
 }
 
 func (r *EventRepo) GetByBusinessID(ctx context.Context, businessID int64, limit, offset int) ([]model.Event, error) {
-	query := `SELECT id, uuid, business_id, name, slug, COALESCE(description, ''), COALESCE(cover_image_url, ''), start_date, end_date, status, total_photo_limit, guest_photo_limit, allow_downloads, created_at, updated_at FROM events WHERE business_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`
+	query := `SELECT id, uuid, business_id, name, slug, COALESCE(description, ''), COALESCE(cover_image_url, ''), start_date, end_date, status, total_photo_limit, guest_photo_limit, allow_downloads, created_at, updated_at FROM events WHERE business_id = $1 AND status = 'active' ORDER BY created_at DESC LIMIT $2 OFFSET $3`
 	rows, err := r.db.pool.Query(ctx, query, businessID, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("fetching events: %w", err)
@@ -518,6 +518,16 @@ func (r *PhotoRepo) CountByEvent(ctx context.Context, eventID int64) (int, error
 func (r *PhotoRepo) CountAll(ctx context.Context) (int, error) {
 	var count int
 	err := r.db.pool.QueryRow(ctx, `SELECT COUNT(*) FROM photos WHERE status = 'active'`).Scan(&count)
+	return count, err
+}
+
+func (r *PhotoRepo) CountByBusiness(ctx context.Context, businessID int64) (int, error) {
+	var count int
+	err := r.db.pool.QueryRow(ctx, `
+		SELECT COUNT(*) FROM photos p
+		JOIN events e ON p.event_id = e.id
+		WHERE e.business_id = $1 AND p.status = 'active'
+	`, businessID).Scan(&count)
 	return count, err
 }
 

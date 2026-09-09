@@ -115,7 +115,7 @@ func (bs *BusinessService) GetByUserID(ctx context.Context, userID int64) (*mode
 
 func (bs *BusinessService) GetStats(ctx context.Context, businessID int64) (*model.DashboardStats, error) {
 	activeEvents, _ := bs.s.repo.Events.CountActive(ctx, businessID)
-	totalPhotos, _ := bs.s.repo.Photos.CountAll(ctx)
+	totalPhotos, _ := bs.s.repo.Photos.CountByBusiness(ctx, businessID)
 	storageMB, _ := bs.s.repo.Photos.SumStorageUsed(ctx, businessID)
 	perEvent, _ := bs.s.repo.Photos.GetEventPhotoCounts(ctx, businessID)
 
@@ -206,11 +206,21 @@ func (es *EventService) Create(ctx context.Context, businessID int64, name, slug
 		AllowDownloads:  allowDownloads,
 	}
 
-	return es.s.repo.Events.Create(ctx, event)
-}
+	event, err = es.s.repo.Events.Create(ctx, event)
+	if err != nil {
+		return nil, err
+	}
 
-func (es *EventService) GetBySlug(ctx context.Context, slug string) (*model.Event, error) {
-	return es.s.repo.Events.GetBySlug(ctx, slug)
+	// Create Immich album for this event
+	if immichStore, ok := es.s.storage.(*storage.ImmichStorage); ok {
+		albumID, err := immichStore.CreateAlbum(name, description)
+		if err == nil && albumID != "" {
+			event.ImmichAlbumID = albumID
+			es.s.repo.Events.Update(ctx, event)
+		}
+	}
+
+	return event, nil
 }
 
 func (es *EventService) GetByID(ctx context.Context, id int64) (*model.Event, error) {
@@ -219,6 +229,10 @@ func (es *EventService) GetByID(ctx context.Context, id int64) (*model.Event, er
 
 func (es *EventService) GetByUUID(ctx context.Context, uuid string) (*model.Event, error) {
 	return es.s.repo.Events.GetByUUID(ctx, uuid)
+}
+
+func (es *EventService) GetBySlug(ctx context.Context, slug string) (*model.Event, error) {
+	return es.s.repo.Events.GetBySlug(ctx, slug)
 }
 
 func (es *EventService) GetByBusinessID(ctx context.Context, businessID int64, limit, offset int) ([]model.Event, error) {

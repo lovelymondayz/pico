@@ -29,11 +29,10 @@ export default function EventCreate() {
         guest_photo_limit: guestLimit,
         allow_downloads: allowDownloads,
       })
-      const eventId = res.event.id
-      if (coverImage && eventId) {
-        await uploadCoverImage(eventId, coverImage)
+      if (coverImage && res.event.id) {
+        await uploadCoverImage(res.event.id, coverImage)
       }
-      navigate(`/events/${eventId || 'new'}`)
+      navigate(`/events/${res.event.uuid}`)
     } catch (err: any) {
       setError(err.message || 'Failed to create event')
     } finally {

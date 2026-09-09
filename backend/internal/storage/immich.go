@@ -224,9 +224,41 @@ func (s *ImmichStorage) uploadToImmich(data []byte, filename string) (string, er
 	return result.ID, nil
 }
 
-// addToAlbum adds an asset to the configured Immich album
-func (s *ImmichStorage) addToAlbum(assetID string) error {
-	url := fmt.Sprintf("%s/api/albums/%s/assets", s.config.APIURL, s.config.AlbumID)
+// CreateAlbum creates a new Immich album and returns the album ID
+func (s *ImmichStorage) CreateAlbum(name, description string) (string, error) {
+	url := fmt.Sprintf("%s/api/albums", s.config.APIURL)
+	body := fmt.Sprintf(`{"albumName":"%s","description":"%s"}`, name, description)
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBufferString(body))
+	if err != nil {
+		return "", fmt.Errorf("creating album request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("x-api-key", s.config.APIKey)
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := s.client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("creating album: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
+		respBody, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("Immich create album failed (%d): %s", resp.StatusCode, string(respBody))
+	}
+
+	var result struct {
+		ID string `json:"id"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", fmt.Errorf("parsing album response: %w", err)
+	}
+	return result.ID, nil
+}
+
+// AddToAlbum adds an asset to a specific Immich album
+func (s *ImmichStorage) AddToAlbum(assetID, albumID string) error {
+	url := fmt.Sprintf("%s/api/albums/%s/assets", s.config.APIURL, albumID)
 	body := fmt.Sprintf(`{"ids":["%s"]}`, assetID)
 	req, err := http.NewRequest(http.MethodPut, url, bytes.NewBufferString(body))
 	if err != nil {
@@ -246,6 +278,11 @@ func (s *ImmichStorage) addToAlbum(assetID string) error {
 		return fmt.Errorf("adding to album failed (%d): %s", resp.StatusCode, string(respBody))
 	}
 	return nil
+}
+
+// addToAlbum adds an asset to the configured Immich album
+func (s *ImmichStorage) addToAlbum(assetID string) error {
+	return s.AddToAlbum(assetID, s.config.AlbumID)
 }
 
 // GetAPIURL returns the Immich API URL
