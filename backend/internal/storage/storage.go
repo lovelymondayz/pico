@@ -17,6 +17,7 @@ type Storage interface {
 	Delete(path string) error
 	Exists(path string) bool
 	GetFullPath(path string) string
+	GetThumbnailURL(path string) string
 	ReadFile(path string) ([]byte, error)
 }
 
@@ -94,6 +95,10 @@ func (s *LocalStorage) Exists(path string) bool {
 }
 
 func (s *LocalStorage) GetFullPath(path string) string {
+	return filepath.Join(s.basePath, path)
+}
+
+func (s *LocalStorage) GetThumbnailURL(path string) string {
 	return filepath.Join(s.basePath, path)
 }
 

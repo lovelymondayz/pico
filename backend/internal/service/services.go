@@ -213,10 +213,16 @@ func (es *EventService) Create(ctx context.Context, businessID int64, name, slug
 
 	// Create Immich album for this event
 	if immichStore, ok := es.s.storage.(*storage.ImmichStorage); ok {
-		albumID, err := immichStore.CreateAlbum(name, description)
-		if err == nil && albumID != "" {
-			event.ImmichAlbumID = albumID
-			es.s.repo.Events.Update(ctx, event)
+		business, err := es.s.repo.Businesses.GetByID(ctx, businessID)
+		if err != nil {
+			// Continue without album if business lookup fails
+		} else {
+			albumName := fmt.Sprintf("%s - %s", business.Name, name)
+			albumID, err := immichStore.CreateAlbum(albumName, description)
+			if err == nil && albumID != "" {
+				event.ImmichAlbumID = albumID
+				es.s.repo.Events.Update(ctx, event)
+			}
 		}
 	}
 
@@ -381,6 +387,10 @@ func (ps *PhotoService) CountByEvent(ctx context.Context, eventID int64) (int, e
 
 func (ps *PhotoService) GetByID(ctx context.Context, id int64) (*model.Photo, error) {
 	return ps.s.repo.Photos.GetByID(ctx, id)
+}
+
+func (ps *PhotoService) GetByUUID(ctx context.Context, uuid string) (*model.Photo, error) {
+	return ps.s.repo.Photos.GetByUUID(ctx, uuid)
 }
 
 func (ps *PhotoService) Delete(ctx context.Context, photoID, businessID int64) error {

@@ -908,23 +908,38 @@ func (h *Handler) SuspendBusiness(c *gin.Context) {
 // --- Helpers ---
 
 func (h *Handler) ServePhoto(c *gin.Context) {
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid photo id"})
-		return
+	idParam := c.Param("id")
+
+	// Try to parse as integer first (backward compatibility)
+	if id, err := strconv.ParseInt(idParam, 10, 64); err == nil {
+		photo, err := h.services.Photo.GetByID(c.Request.Context(), id)
+		if err == nil {
+			if photo.ImmichAssetID != "" {
+				data, err := h.services.GetStorage().(*storage.ImmichStorage).ReadFile(photo.ImmichAssetID)
+				if err == nil {
+					c.Data(http.StatusOK, photo.MimeType, data)
+					return
+				}
+			}
+			fullPath := h.services.GetStorage().GetFullPath(photo.StoragePath)
+			c.File(fullPath)
+			return
+		}
 	}
 
-	photo, err := h.services.Photo.GetByID(c.Request.Context(), id)
+	// Try to find by UUID
+	photo, err := h.services.Photo.GetByUUID(c.Request.Context(), idParam)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "photo not found"})
 		return
 	}
 
-	// If photo has Immich asset ID, redirect to Immich URL
 	if photo.ImmichAssetID != "" {
-		immichURL := h.services.GetStorage().GetFullPath(photo.ImmichAssetID)
-		c.Redirect(http.StatusFound, immichURL)
-		return
+		data, err := h.services.GetStorage().(*storage.ImmichStorage).ReadFile(photo.ImmichAssetID)
+		if err == nil {
+			c.Data(http.StatusOK, photo.MimeType, data)
+			return
+		}
 	}
 
 	fullPath := h.services.GetStorage().GetFullPath(photo.StoragePath)
@@ -932,23 +947,38 @@ func (h *Handler) ServePhoto(c *gin.Context) {
 }
 
 func (h *Handler) ServeThumbnail(c *gin.Context) {
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid photo id"})
-		return
+	idParam := c.Param("id")
+
+	// Try to parse as integer first (backward compatibility)
+	if id, err := strconv.ParseInt(idParam, 10, 64); err == nil {
+		photo, err := h.services.Photo.GetByID(c.Request.Context(), id)
+		if err == nil {
+			if photo.ImmichAssetID != "" {
+				data, err := h.services.GetStorage().(*storage.ImmichStorage).ReadFile(photo.ImmichAssetID)
+				if err == nil {
+					c.Data(http.StatusOK, photo.MimeType, data)
+					return
+				}
+			}
+			fullPath := h.services.GetStorage().GetFullPath(photo.ThumbnailPath)
+			c.File(fullPath)
+			return
+		}
 	}
 
-	photo, err := h.services.Photo.GetByID(c.Request.Context(), id)
+	// Try to find by UUID
+	photo, err := h.services.Photo.GetByUUID(c.Request.Context(), idParam)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "photo not found"})
 		return
 	}
 
-	// If photo has Immich asset ID, redirect to Immich thumbnail URL
 	if photo.ImmichAssetID != "" {
-		immichURL := h.services.GetStorage().GetFullPath("thumb-" + photo.ImmichAssetID)
-		c.Redirect(http.StatusFound, immichURL)
-		return
+		data, err := h.services.GetStorage().(*storage.ImmichStorage).ReadFile(photo.ImmichAssetID)
+		if err == nil {
+			c.Data(http.StatusOK, photo.MimeType, data)
+			return
+		}
 	}
 
 	fullPath := h.services.GetStorage().GetFullPath(photo.ThumbnailPath)

@@ -462,11 +462,19 @@ func (r *PhotoRepo) Create(ctx context.Context, photo *model.Photo) (*model.Phot
 func (r *PhotoRepo) GetByID(ctx context.Context, id int64) (*model.Photo, error) {
 	query := `SELECT id, event_id, guest_id, storage_path, thumbnail_path, url, thumbnail_url, COALESCE(immich_asset_id, ''), original_filename, file_size_bytes, mime_type, width, height, status, created_at FROM photos WHERE id = $1`
 	var photo model.Photo
-	err := r.db.pool.QueryRow(ctx, query, id).Scan(
-		&photo.ID, &photo.EventID, &photo.GuestID, &photo.StoragePath, &photo.ThumbnailPath, &photo.URL, &photo.ThumbnailURL, &photo.ImmichAssetID, &photo.OriginalFilename, &photo.FileSizeBytes, &photo.MimeType, &photo.Width, &photo.Height, &photo.Status, &photo.CreatedAt,
-	)
+	err := r.db.pool.QueryRow(ctx, query, id).Scan(&photo.ID, &photo.EventID, &photo.GuestID, &photo.StoragePath, &photo.ThumbnailPath, &photo.URL, &photo.ThumbnailURL, &photo.ImmichAssetID, &photo.OriginalFilename, &photo.FileSizeBytes, &photo.MimeType, &photo.Width, &photo.Height, &photo.Status, &photo.CreatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("fetching photo: %w", err)
+	}
+	return &photo, nil
+}
+
+func (r *PhotoRepo) GetByUUID(ctx context.Context, uuid string) (*model.Photo, error) {
+	query := `SELECT id, event_id, guest_id, storage_path, thumbnail_path, url, thumbnail_url, COALESCE(immich_asset_id, ''), original_filename, file_size_bytes, mime_type, width, height, status, created_at FROM photos WHERE uuid = $1`
+	var photo model.Photo
+	err := r.db.pool.QueryRow(ctx, query, uuid).Scan(&photo.ID, &photo.EventID, &photo.GuestID, &photo.StoragePath, &photo.ThumbnailPath, &photo.URL, &photo.ThumbnailURL, &photo.ImmichAssetID, &photo.OriginalFilename, &photo.FileSizeBytes, &photo.MimeType, &photo.Width, &photo.Height, &photo.Status, &photo.CreatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("fetching photo by uuid: %w", err)
 	}
 	return &photo, nil
 }
