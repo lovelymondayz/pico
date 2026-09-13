@@ -22,6 +22,8 @@ type Config struct {
 	GuestTokenExpiry  time.Duration
 	RateLimitRequests int
 	RateLimitWindow   time.Duration
+	CORSOrigins       string
+	AppDomain         string
 	ImmichAPIURL      string
 	ImmichAPIKey      string
 	ImmichDeviceID    string
@@ -34,7 +36,7 @@ func Load() *Config {
 	return &Config{
 		Port:              getEnv("PORT", "8082"),
 		DatabaseURL:       getEnv("DATABASE_URL", "postgres://pico:***@localhost:5435/pico?sslmode=disable"),
-		JWTSecret:         getEnv("JWT_SECRET", "pico-secret-change-in-production"),
+		JWTSecret:         getEnv("JWT_SECRET", ""),
 		JWTExpiryHours:    time.Duration(getEnvInt("JWT_EXPIRY_HOURS", 72)) * time.Hour,
 		StoragePath:       getEnv("STORAGE_PATH", "/data/photos"),
 		MaxUploadBytes:    int64(getEnvInt("MAX_UPLOAD_BYTES", 5*1024*1024)),
@@ -44,7 +46,8 @@ func Load() *Config {
 		GuestTokenExpiry:  time.Duration(getEnvInt("GUEST_TOKEN_EXPIRY_DAYS", 30)) * 24 * time.Hour,
 		RateLimitRequests: getEnvInt("RATE_LIMIT_REQUESTS", 10),
 		RateLimitWindow:   time.Duration(getEnvInt("RATE_LIMIT_WINDOW_SECONDS", 60)) * time.Second,
-		ImmichAPIURL:      getEnv("IMMICH_API_URL", ""),
+		CORSOrigins:      getEnv("CORS_ORIGINS", "https://pico.arjism.com,http://localhost:3005,http://localhost:5173"),
+		AppDomain:        getEnv("APP_DOMAIN", "pico.arjism.com"),
 		ImmichAPIKey:      getEnv("IMMICH_API_KEY", ""),
 		ImmichDeviceID:    getEnv("IMMICH_DEVICE_ID", ""),
 		ImmichAlbumID:     getEnv("IMMICH_ALBUM_ID", ""),

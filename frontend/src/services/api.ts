@@ -1,4 +1,6 @@
-const API_BASE = 'https://backend-pico.arjism.com/api'
+/// <reference types="vite/client" />
+
+const API_BASE = import.meta.env.VITE_API_URL || 'https://backend-pico.arjism.com/api/v1'
 
 function getToken(): string | null {
   return localStorage.getItem('pico_token')

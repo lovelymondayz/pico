@@ -6,9 +6,18 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 3003,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8082',
+        changeOrigin: true,
+      },
+      '/photos': {
+        target: 'http://localhost:8082',
+        changeOrigin: true,
+      },
+    },
   },
   build: {
     outDir: 'dist',
   },
 })
-// auto-deploy test

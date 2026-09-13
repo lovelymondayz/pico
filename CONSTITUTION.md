@@ -8,7 +8,7 @@
 |-------|-----------|
 | Frontend | React 18 + TypeScript + Tailwind CSS |
 | Backend | Go 1.22 + Gin + pgx/v4 |
-| Database | PostgreSQL 15 |
+| Database | PostgreSQL 16 |
 | Auth | JWT + Guest Tokens |
 | Container | Docker + Docker Compose |
 

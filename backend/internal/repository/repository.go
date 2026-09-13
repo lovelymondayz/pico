@@ -136,6 +136,18 @@ func (r *BusinessRepo) Create(ctx context.Context, userID int64, name, slug stri
 	return &biz, nil
 }
 
+func (r *BusinessRepo) GetByUserID(ctx context.Context, userID int64) (*model.Business, error) {
+	query := `SELECT id, user_id, name, slug, created_at FROM businesses WHERE user_id = $1`
+	var biz model.Business
+	err := r.db.pool.QueryRow(ctx, query, userID).Scan(
+		&biz.ID, &biz.UserID, &biz.Name, &biz.Slug, &biz.CreatedAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("fetching business by user id: %w", err)
+	}
+	return &biz, nil
+}
+
 func (r *BusinessRepo) GetByID(ctx context.Context, id int64) (*model.Business, error) {
 	query := `SELECT id, user_id, name, slug, created_at FROM businesses WHERE id = $1`
 	var biz model.Business

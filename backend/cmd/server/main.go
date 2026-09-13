@@ -9,6 +9,7 @@ import (
 	"pico/internal/service"
 	"pico/internal/storage"
 	"pico/internal/util"
+	"strings"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -50,8 +51,9 @@ func main() {
 	router := gin.Default()
 
 	// CORS
+	corsOrigins := strings.Split(cfg.CORSOrigins, ",")
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"https://pico.arjism.com", "http://localhost:3005", "http://localhost:5173"},
+		AllowOrigins:     corsOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "X-Guest-Token"},
 		ExposeHeaders:    []string{"Content-Length", "Content-Type"},
@@ -61,11 +63,8 @@ func main() {
 	// Rate limiting
 	rateLimit := middleware.NewRateLimiter(cfg.RateLimitRequests, cfg.RateLimitWindow)
 
-	// Debug endpoint
-	router.GET("/api/debug", h.Debug)
-
 	// Public routes
-	public := router.Group("/api")
+	public := router.Group("/api/v1")
 	{
 		public.POST("/auth/register", h.Register)
 		public.POST("/auth/login", h.Login)
@@ -85,7 +84,7 @@ func main() {
 	router.GET("/photos/:id/thumb", h.ServeThumbnail)
 
 	// Business routes (JWT required)
-	business := router.Group("/api/business")
+	business := router.Group("/api/v1/business")
 	business.Use(middleware.RequireAuth(services.Auth))
 	{
 		business.GET("/events", h.ListBusinessEvents)
@@ -102,7 +101,7 @@ func main() {
 	}
 
 	// Admin routes (JWT + admin role)
-	admin := router.Group("/api/admin")
+	admin := router.Group("/api/v1/admin")
 	admin.Use(middleware.RequireAuth(services.Auth), middleware.RequireAdmin())
 	{
 		admin.GET("/plans", h.ListPlans)

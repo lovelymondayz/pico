@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { login as apiLogin, register as apiRegister } from '../services/api'
 
 interface User {
   id: number
@@ -34,32 +35,14 @@ export const useAuthStore = create<AuthState>((set) => ({
   isAuthenticated: !!localStorage.getItem('pico_token'),
 
   login: async (email: string, password: string) => {
-    const res = await fetch('https://backend-pico.arjism.com/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    })
-    if (!res.ok) {
-      const err = await res.json()
-      throw new Error(err.error || 'Login failed')
-    }
-    const data = await res.json()
+    const data = await apiLogin(email, password)
     localStorage.setItem('pico_token', data.token)
     localStorage.setItem('pico_user', JSON.stringify(data.user))
     set({ token: data.token, user: data.user, isAuthenticated: true })
   },
 
   register: async (email: string, password: string, name: string, businessName: string) => {
-    const res = await fetch('https://backend-pico.arjism.com/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, name, business_name: businessName }),
-    })
-    if (!res.ok) {
-      const err = await res.json()
-      throw new Error(err.error || 'Registration failed')
-    }
-    const data = await res.json()
+    const data = await apiRegister(email, password, name, businessName)
     localStorage.setItem('pico_token', data.token)
     localStorage.setItem('pico_user', JSON.stringify(data.user))
     localStorage.setItem('pico_business', JSON.stringify(data.business))

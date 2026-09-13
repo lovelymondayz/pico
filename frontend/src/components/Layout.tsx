@@ -8,18 +8,18 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const isActive = (path: string) => location.pathname.startsWith(path)
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
+    <div className="min-h-screen bg-bg">
+      <nav className="bg-surface border-b border-border sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
-              <Link to="/" className="text-xl font-bold text-purple-600">Pico</Link>
+              <Link to="/" className="text-xl font-bold text-primary">Pico</Link>
               {isAuthenticated && (
                 <div className="hidden sm:flex sm:ml-8 space-x-4">
                   <Link
                     to="/dashboard"
                     className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                      isActive('/dashboard') ? 'bg-purple-100 text-purple-700' : 'text-gray-600 hover:text-gray-900'
+                      isActive('/dashboard') ? 'bg-primary-subtle text-primary' : 'text-text-muted hover:text-text'
                     }`}
                   >
                     Dashboard
@@ -27,7 +27,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   <Link
                     to="/events"
                     className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                      isActive('/events') ? 'bg-purple-100 text-purple-700' : 'text-gray-600 hover:text-gray-900'
+                      isActive('/events') ? 'bg-primary-subtle text-primary' : 'text-text-muted hover:text-text'
                     }`}
                   >
                     Events
@@ -36,7 +36,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                     <Link
                       to="/admin"
                       className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                        isActive('/admin') ? 'bg-purple-100 text-purple-700' : 'text-gray-600 hover:text-gray-900'
+                        isActive('/admin') ? 'bg-primary-subtle text-primary' : 'text-text-muted hover:text-text'
                       }`}
                     >
                       Admin
@@ -48,13 +48,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <div className="flex items-center space-x-4">
               {isAuthenticated ? (
                 <>
-                  <span className="hidden sm:inline text-sm text-gray-600">{user?.name}</span>
-                  <span className="hidden sm:inline px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-700">
+                  <span className="hidden sm:inline text-sm text-text-muted">{user?.name}</span>
+                  <span className="hidden sm:inline px-2 py-1 text-xs rounded-full bg-primary-subtle text-primary">
                     {user?.role}
                   </span>
                   <button
                     onClick={logout}
-                    className="text-sm text-gray-600 hover:text-gray-900"
+                    className="text-sm text-text-muted hover:text-text"
                   >
                     Logout
                   </button>
@@ -62,7 +62,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               ) : (
                 <Link
                   to="/login"
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors"
+                  className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-hover transition-colors"
                 >
                   Login
                 </Link>

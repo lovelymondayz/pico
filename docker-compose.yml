@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:15-alpine
+    image: postgres:16-alpine
     container_name: pico-postgres
     env_file:
       - .env
@@ -28,7 +28,7 @@ services:
     environment:
       PORT: 8082
       DATABASE_URL: postgres://pico:${DB_PASSWORD}@pico-postgres:5432/pico?sslmode=disable
-      JWT_SECRET: ${JWT_SECRET:-pico-secret-change-in-production}
+      JWT_SECRET: ${JWT_SECRET}
       STORAGE_PATH: /data/photos
       MAX_UPLOAD_BYTES: ${MAX_UPLOAD_BYTES:-5242880}
       IMAGE_MAX_WIDTH: ${IMAGE_MAX_WIDTH:-1200}

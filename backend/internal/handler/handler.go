@@ -708,7 +708,7 @@ func (h *Handler) GenerateQR(c *gin.Context) {
 		return
 	}
 
-	url := fmt.Sprintf("https://%s/e/%s", "pico.arjism.com", event.Slug)
+	url := fmt.Sprintf("https://%s/e/%s", h.cfg.AppDomain, event.Slug)
 	qrPNG, err := h.services.Photo.GenerateQR(c.Request.Context(), url, 512)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate QR"})

@@ -99,18 +99,7 @@ func (bs *BusinessService) Register(ctx context.Context, email, password, name, 
 }
 
 func (bs *BusinessService) GetByUserID(ctx context.Context, userID int64) (*model.Business, error) {
-	// This requires a new repository method
-	// For now, we'll fetch all businesses (inefficient but works for MVP)
-	businesses, err := bs.s.repo.Businesses.GetAll(ctx, 1000, 0)
-	if err != nil {
-		return nil, err
-	}
-	for _, b := range businesses {
-		if b.UserID == userID {
-			return &b, nil
-		}
-	}
-	return nil, fmt.Errorf("business not found for user %d", userID)
+	return bs.s.repo.Businesses.GetByUserID(ctx, userID)
 }
 
 func (bs *BusinessService) GetStats(ctx context.Context, businessID int64) (*model.DashboardStats, error) {

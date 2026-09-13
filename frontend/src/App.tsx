@@ -32,11 +32,11 @@ export default function App() {
         <Route path="/" element={
           <Layout>
             <div className="text-center py-20">
-              <h1 className="text-4xl font-bold text-gray-900">Event Photo Sharing</h1>
-              <p className="mt-4 text-lg text-gray-600">Collect and share memories from your events</p>
+              <h1 className="text-4xl font-bold text-text">Event Photo Sharing</h1>
+              <p className="mt-4 text-lg text-text-muted">Collect and share memories from your events</p>
               <div className="mt-8 flex justify-center gap-4">
-                <a href="/register" className="px-6 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors">Get Started</a>
-                <a href="/login" className="px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors">Sign In</a>
+                <a href="/register" className="px-6 py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary-hover transition-colors">Get Started</a>
+                <a href="/login" className="px-6 py-3 bg-surface border border-border text-text rounded-lg font-medium hover:bg-surface-alt transition-colors">Sign In</a>
               </div>
             </div>
           </Layout>

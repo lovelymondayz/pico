@@ -63,88 +63,88 @@ export default function EventDetail() {
     }
   }
 
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div></div>
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>
 
-  if (error) return <div className="max-w-2xl mx-auto"><div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">{error}</div></div>
+  if (error) return <div className="max-w-2xl mx-auto"><div className="p-4 bg-danger-subtle border border-danger rounded-lg text-danger">{error}</div></div>
 
-  if (!event) return <div className="text-center py-20"><p className="text-gray-500">Event not found</p></div>
+  if (!event) return <div className="text-center py-20"><p className="text-text-muted">Event not found</p></div>
 
   return (
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{event.name}</h1>
-          <p className="text-gray-600">{event.description || 'No description'}</p>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-2xl font-bold text-text">{event.name}</h1>
+          <p className="text-text-muted">{event.description || 'No description'}</p>
+          <p className="text-sm text-text-subtle mt-1">
             {new Date(event.start_date).toLocaleDateString()} — {new Date(event.end_date).toLocaleDateString()}
           </p>
         </div>
         <div className="flex gap-3">
-          <Link to="/dashboard" className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
+          <Link to="/dashboard" className="px-4 py-2 bg-surface border border-border text-text rounded-lg text-sm font-medium hover:bg-surface-alt transition-colors">
             ← Back
           </Link>
         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <p className="text-sm font-medium text-gray-600">Photos</p>
-          <p className="mt-2 text-3xl font-bold text-gray-900">{photos.length} / {event.total_photo_limit}</p>
+        <div className="bg-surface rounded-xl border border-border p-6">
+          <p className="text-sm font-medium text-text-muted">Photos</p>
+          <p className="mt-2 text-3xl font-bold text-text">{photos.length} / {event.total_photo_limit}</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <p className="text-sm font-medium text-gray-600">Guest Limit</p>
-          <p className="mt-2 text-3xl font-bold text-purple-600">{event.guest_photo_limit}</p>
+        <div className="bg-surface rounded-xl border border-border p-6">
+          <p className="text-sm font-medium text-text-muted">Guest Limit</p>
+          <p className="mt-2 text-3xl font-bold text-primary">{event.guest_photo_limit}</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <p className="text-sm font-medium text-gray-600">Downloads</p>
-          <p className="mt-2 text-3xl font-bold text-gray-900">{event.allow_downloads ? 'Enabled' : 'Disabled'}</p>
+        <div className="bg-surface rounded-xl border border-border p-6">
+          <p className="text-sm font-medium text-text-muted">Downloads</p>
+          <p className="mt-2 text-3xl font-bold text-text">{event.allow_downloads ? 'Enabled' : 'Disabled'}</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <p className="text-sm font-medium text-gray-600">Status</p>
-          <p className={`mt-2 text-3xl font-bold ${event.status === 'active' ? 'text-green-600' : 'text-gray-400'}`}>{event.status}</p>
+        <div className="bg-surface rounded-xl border border-border p-6">
+          <p className="text-sm font-medium text-text-muted">Status</p>
+          <p className={`mt-2 text-3xl font-bold ${event.status === 'active' ? 'text-success' : 'text-text-subtle'}`}>{event.status}</p>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Event Actions</h2>
+      <div className="bg-surface rounded-xl border border-border p-6">
+        <h2 className="text-lg font-semibold text-text mb-4">Event Actions</h2>
         <div className="flex flex-wrap gap-3">
-          <button onClick={handleQR} className="px-6 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors">
+          <button onClick={handleQR} className="px-6 py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary-hover transition-colors">
             📱 Show QR Code
           </button>
-          <a href={`/e/${event.slug}`} target="_blank" className="px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors">
+          <a href={`/e/${event.slug}`} target="_blank" className="px-6 py-3 bg-surface border border-border text-text rounded-lg font-medium hover:bg-surface-alt transition-colors">
             🔗 Open Guest Page
           </a>
           {event.allow_downloads && (
-            <button onClick={handleDownload} className="px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors">
+            <button onClick={handleDownload} className="px-6 py-3 bg-success text-white rounded-lg font-medium hover:bg-success transition-colors">
               📥 Download All ({photos.length})
             </button>
           )}
-          <button onClick={handleClose} className="px-6 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors">
+          <button onClick={handleClose} className="px-6 py-3 bg-danger text-white rounded-lg font-medium hover:bg-danger transition-colors">
             🚪 Close Event
           </button>
         </div>
 
         {showQR && (
-          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-            <p className="text-sm text-gray-600 mb-3">Share this QR code with guests:</p>
-            <img src={`/api/business/events/${event.id}/qr`} alt="Event QR Code" className="w-48 h-48 border border-gray-200 rounded-lg" />
-            <p className="text-xs text-gray-500 mt-2">Or share this link: <a href={`/e/${event.slug}`} className="text-purple-600 hover:underline">{`${window.location.origin}/e/${event.slug}`}</a></p>
+          <div className="mt-6 p-4 bg-surface-alt rounded-lg">
+            <p className="text-sm text-text-muted mb-3">Share this QR code with guests:</p>
+            <img src={`/api/v1/business/events/${event.id}/qr`} alt="Event QR Code" className="w-48 h-48 border border-border rounded-lg" />
+            <p className="text-xs text-text-subtle mt-2">Or share this link: <a href={`/e/${event.slug}`} className="text-primary hover:underline">{`${window.location.origin}/e/${event.slug}`}</a></p>
           </div>
         )}
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Photos ({photos.length})</h2>
+      <div className="bg-surface rounded-xl border border-border p-6">
+        <h2 className="text-lg font-semibold text-text mb-4">Photos ({photos.length})</h2>
         {photos.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             {photos.map((photo) => (
-              <div key={photo.id} className="aspect-square rounded-lg overflow-hidden bg-gray-200">
+              <div key={photo.id} className="aspect-square rounded-lg overflow-hidden bg-surface-alt">
                 <img src={photo.thumbnail_url || photo.url} alt={photo.original_filename} className="w-full h-full object-cover" loading="lazy" />
               </div>
             ))}
           </div>
         ) : (
-          <p className="text-gray-500 text-center py-8">No photos yet</p>
+          <p className="text-text-muted text-center py-8">No photos yet</p>
         )}
       </div>
     </div>
