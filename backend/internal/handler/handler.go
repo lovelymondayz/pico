@@ -871,7 +871,51 @@ func (h *Handler) SuspendBusiness(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "business status updated"})
 }
 
-// --- Helpers ---
+// Admin user management
+func (h *Handler) ListAllUsers(c *gin.Context) {
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
+	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+
+	users, err := h.services.Admin.ListAllUsers(c.Request.Context(), limit, offset)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch users"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"users": users})
+}
+
+func (h *Handler) UpdateUser(c *gin.Context) {
+	userID := c.Param("id")
+
+	var req struct {
+		Name  string `json:"name"`
+		Email string `json:"email"`
+		Role  string `json:"role"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+		return
+	}
+
+	if err := h.services.Admin.UpdateUser(c.Request.Context(), userID, req.Name, req.Email, req.Role); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update user"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "user updated"})
+}
+
+func (h *Handler) DeleteUser(c *gin.Context) {
+	userID := c.Param("id")
+
+	if err := h.services.Admin.DeleteUser(c.Request.Context(), userID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete user"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "user deleted"})
+}
 
 func (h *Handler) ServePhoto(c *gin.Context) {
 	idParam := c.Param("id")

@@ -19,6 +19,7 @@ export default function EventGallery() {
   const [photos, setPhotos] = useState<Photo[]>([])
   const [guestName, setGuestName] = useState('')
   const [guestToken, setGuestToken] = useState<string | null>(localStorage.getItem(`guest_${slug}`))
+  const [guestInfo, setGuestInfo] = useState<{photoCount: number, photoLimit: number} | null>(null)
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [lightbox, setLightbox] = useState<Photo | null>(null)
@@ -62,6 +63,30 @@ export default function EventGallery() {
     }
   }
 
+  const loadGuestInfo = async () => {
+    if (!guestToken || !slug) return
+    try {
+      const res = await listMyPhotos(slug, guestToken)
+      const myPhotoCount = res.photos?.length || 0
+      setGuestInfo({
+        photoCount: myPhotoCount,
+        photoLimit: event?.guest_photo_limit || 0
+      })
+    } catch {
+      // Fallback: try to get from localStorage
+      const stored = localStorage.getItem(`guest_info_${slug}`)
+      if (stored) {
+        setGuestInfo(JSON.parse(stored))
+      }
+    }
+  }
+
+  useEffect(() => {
+    if (guestToken && event) {
+      loadGuestInfo()
+    }
+  }, [guestToken, event])
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!guestName.trim() || !slug) return
@@ -70,7 +95,13 @@ export default function EventGallery() {
       const token = res.guest_token || res.guest?.guest_token
       setGuestToken(token)
       localStorage.setItem(`guest_${slug}`, token)
-      addToast('Welcome! You can now upload photos.', 'success')
+      
+      const limit = event?.guest_photo_limit || 0
+      const info = { photoCount: 0, photoLimit: limit }
+      setGuestInfo(info)
+      localStorage.setItem(`guest_info_${slug}`, JSON.stringify(info))
+      
+      addToast(`Welcome! You can upload ${limit} photos.`, 'success')
     } catch {
       addToast('Failed to register as guest', 'error')
     }
@@ -79,10 +110,23 @@ export default function EventGallery() {
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file || !slug) return
+    
+    if (guestInfo && guestInfo.photoCount >= guestInfo.photoLimit) {
+      addToast(`You've reached your limit of ${guestInfo.photoLimit} photos`, 'error')
+      return
+    }
+    
     setUploading(true)
     try {
       await uploadPhoto(slug, guestToken || '', file)
       addToast('Photo uploaded!', 'success')
+      
+      if (guestInfo) {
+        const newInfo = { ...guestInfo, photoCount: guestInfo.photoCount + 1 }
+        setGuestInfo(newInfo)
+        localStorage.setItem(`guest_info_${slug}`, JSON.stringify(newInfo))
+      }
+      
       await loadPhotos()
       setTimeout(() => loadPhotos(), 500)
       setTimeout(() => loadPhotos(), 1500)
@@ -98,6 +142,9 @@ export default function EventGallery() {
     navigator.clipboard.writeText(link)
     addToast('Guest link copied!', 'success')
   }
+
+  const remainingPhotos = guestInfo ? guestInfo.photoLimit - guestInfo.photoCount : null
+  const hasReachedLimit = remainingPhotos !== null && remainingPhotos <= 0
 
   if (loading) return <div className="flex items-center justify-center h-screen"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>
 
@@ -131,15 +178,73 @@ export default function EventGallery() {
         )}
 
         {guestToken && (
-          <div className="mb-8 flex justify-center">
-            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleUpload} className="hidden" id="photo-upload" />
-            <div className="flex gap-3 flex-wrap justify-center">
-              <label htmlFor="photo-upload" className="px-6 py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary-hover cursor-pointer transition-colors">
-                {uploading ? 'Uploading...' : '+ Upload Photo'}
-              </label>
-              <button onClick={() => setShowMyPhotos(!showMyPhotos)} className={`px-6 py-3 rounded-lg font-medium transition-colors ${showMyPhotos ? 'bg-primary-subtle text-primary border border-primary' : 'bg-surface border border-border text-text hover:bg-surface-alt'}`}>
-                {showMyPhotos ? 'All Photos' : 'My Photos'}
-              </button>
+          <div className="mb-8">
+            {/* Photo Counter */}
+            {guestInfo && (
+              <div className={`mb-4 p-4 rounded-xl border text-center ${
+                hasReachedLimit 
+                  ? 'bg-warning-subtle border-warning' 
+                  : 'bg-surface border-border'
+              }`}>
+                {hasReachedLimit ? (
+                  <div>
+                    <p className="text-warning font-semibold">📸 You've uploaded all your photos!</p>
+                    <p className="text-sm text-text-muted mt-1">
+                      {guestInfo.photoCount} of {guestInfo.photoLimit} photos uploaded
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-text font-semibold">
+                      📸 {remainingPhotos} photo{remainingPhotos !== 1 ? 's' : ''} remaining
+                    </p>
+                    <p className="text-sm text-text-muted mt-1">
+                      {guestInfo.photoCount} of {guestInfo.photoLimit} photos uploaded
+                    </p>
+                    <div className="mt-2 w-full bg-surface-alt rounded-full h-2 overflow-hidden">
+                      <div 
+                        className="bg-primary h-full rounded-full transition-all duration-300"
+                        style={{ width: `${(guestInfo.photoCount / guestInfo.photoLimit) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Upload Controls */}
+            <div className="flex justify-center">
+              <input 
+                ref={fileInputRef} 
+                type="file" 
+                accept="image/*" 
+                onChange={handleUpload} 
+                className="hidden" 
+                id="photo-upload" 
+                disabled={hasReachedLimit}
+              />
+              <div className="flex gap-3 flex-wrap justify-center">
+                <label 
+                  htmlFor="photo-upload" 
+                  className={`px-6 py-3 rounded-lg font-medium transition-colors ${
+                    hasReachedLimit 
+                      ? 'bg-surface-alt text-text-muted cursor-not-allowed' 
+                      : 'bg-primary text-white hover:bg-primary-hover cursor-pointer'
+                  }`}
+                >
+                  {uploading ? 'Uploading...' : hasReachedLimit ? 'Limit Reached' : '+ Upload Photo'}
+                </label>
+                <button 
+                  onClick={() => setShowMyPhotos(!showMyPhotos)} 
+                  className={`px-6 py-3 rounded-lg font-medium transition-colors ${
+                    showMyPhotos 
+                      ? 'bg-primary-subtle text-primary border border-primary' 
+                      : 'bg-surface border border-border text-text hover:bg-surface-alt'
+                  }`}
+                >
+                  {showMyPhotos ? 'All Photos' : 'My Photos'}
+                </button>
+              </div>
             </div>
           </div>
         )}

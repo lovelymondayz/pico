@@ -109,6 +109,36 @@ func (r *UserRepo) GetByEmail(ctx context.Context, email string) (*model.User, e
 	return &user, nil
 }
 
+func (r *UserRepo) GetAll(ctx context.Context, limit, offset int) ([]model.User, error) {
+	query := `SELECT id, email, password_hash, name, role, created_at FROM users ORDER BY created_at DESC LIMIT $1 OFFSET $2`
+	rows, err := r.db.pool.Query(ctx, query, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("fetching users: %w", err)
+	}
+	defer rows.Close()
+
+	users := []model.User{}
+	for rows.Next() {
+		var user model.User
+		if err := rows.Scan(&user.ID, &user.Email, &user.PasswordHash, &user.Name, &user.Role, &user.CreatedAt); err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+	return users, nil
+}
+
+func (r *UserRepo) Update(ctx context.Context, userID, name, email, role string) error {
+	query := `UPDATE users SET name = $1, email = $2, role = $3 WHERE id = $4`
+	_, err := r.db.pool.Exec(ctx, query, name, email, role, userID)
+	return err
+}
+
+func (r *UserRepo) Delete(ctx context.Context, userID string) error {
+	_, err := r.db.pool.Exec(ctx, `DELETE FROM users WHERE id = $1`, userID)
+	return err
+}
+
 func (r *UserRepo) GetByID(ctx context.Context, id string) (*model.User, error) {
 	query := `SELECT id, email, password_hash, name, role, created_at FROM users WHERE id = $1`
 	var user model.User

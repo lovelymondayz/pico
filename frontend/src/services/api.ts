@@ -183,7 +183,31 @@ export async function businessStats() {
   return handleRes(res)
 }
 
-// ── Admin ──
+// ── Admin Users ──
+
+export async function listAllUsers() {
+  const res = await fetch(`${API_BASE}/admin/users`, {
+    headers: { ...authHeaders() },
+  })
+  return handleRes(res)
+}
+
+export async function updateUser(id: string, data: { name: string; email: string; role: string }) {
+  const res = await fetch(`${API_BASE}/admin/users/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(data),
+  })
+  return handleRes(res)
+}
+
+export async function deleteUser(id: string) {
+  const res = await fetch(`${API_BASE}/admin/users/${id}`, {
+    method: 'DELETE',
+    headers: { ...authHeaders() },
+  })
+  return handleRes(res)
+}
 
 export async function adminStats() {
   const res = await fetch(`${API_BASE}/admin/stats`, {

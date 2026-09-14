@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { adminStats, listAllBusinesses, suspendBusiness, listPlans, deletePlan } from '../services/api'
+import { adminStats, listAllBusinesses, suspendBusiness, listPlans, deletePlan, listAllUsers, updateUser, deleteUser } from '../services/api'
+import { useToastStore } from '../stores/toast'
 
 interface Business {
   id: string
@@ -21,12 +22,22 @@ interface Plan {
   photos_per_guest: number
 }
 
+interface User {
+  id: string
+  name: string
+  email: string
+  role: string
+  created_at: string
+}
+
 export default function Admin() {
-  const [tab, setTab] = useState<'businesses' | 'plans' | 'analytics'>('businesses')
+  const [tab, setTab] = useState<'businesses' | 'users' | 'plans' | 'analytics'>('businesses')
   const [businesses, setBusinesses] = useState<Business[]>([])
+  const [users, setUsers] = useState<User[]>([])
   const [plans, setPlans] = useState<Plan[]>([])
   const [stats, setStats] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const addToast = useToastStore((s) => s.addToast)
 
   useEffect(() => {
     loadData()
@@ -34,16 +45,18 @@ export default function Admin() {
 
   const loadData = async () => {
     try {
-      const [bizRes, statsRes, plansRes] = await Promise.all([
+      const [bizRes, statsRes, plansRes, usersRes] = await Promise.all([
         listAllBusinesses(),
         adminStats(),
         listPlans(),
+        listAllUsers(),
       ])
       setBusinesses(bizRes.businesses || [])
       setPlans(plansRes.plans || [])
       setStats(statsRes?.stats || null)
-    } catch (err: any) {
-      console.error('Failed to load admin data:', err.message)
+      setUsers(usersRes.users || [])
+    } catch {
+      addToast('Failed to load admin data', 'error')
     } finally {
       setLoading(false)
     }
@@ -53,8 +66,9 @@ export default function Admin() {
     try {
       await suspendBusiness(id, currentStatus !== 'suspended')
       setBusinesses(businesses.map(b => b.id === id ? { ...b, status: currentStatus === 'suspended' ? 'active' : 'suspended' } : b))
+      addToast('Business status updated', 'success')
     } catch {
-      // Silently fail
+      addToast('Failed to update business', 'error')
     }
   }
 
@@ -63,8 +77,30 @@ export default function Admin() {
     try {
       await deletePlan(id)
       setPlans(plans.filter(p => p.id !== id))
+      addToast('Plan deleted', 'success')
     } catch {
-      // Silently fail
+      addToast('Failed to delete plan', 'error')
+    }
+  }
+
+  const handleUpdateUser = async (id: string, data: { name: string; email: string; role: string }) => {
+    try {
+      await updateUser(id, data)
+      setUsers(users.map(u => u.id === id ? { ...u, ...data } : u))
+      addToast('User updated', 'success')
+    } catch {
+      addToast('Failed to update user', 'error')
+    }
+  }
+
+  const handleDeleteUser = async (id: string) => {
+    if (!confirm('Delete this user? This cannot be undone.')) return
+    try {
+      await deleteUser(id)
+      setUsers(users.filter(u => u.id !== id))
+      addToast('User deleted', 'success')
+    } catch {
+      addToast('Failed to delete user', 'error')
     }
   }
 
@@ -74,7 +110,7 @@ export default function Admin() {
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-text">Super Admin Panel</h1>
-        <p className="text-text-muted">Manage all businesses and subscription plans</p>
+        <p className="text-text-muted">Manage all businesses, users and subscription plans</p>
       </div>
 
       {/* Stats */}
@@ -104,28 +140,16 @@ export default function Admin() {
       {/* Tabs */}
       <div className="border-b border-border">
         <nav className="flex space-x-8">
-          <button
-            onClick={() => setTab('businesses')}
-            className={`py-3 border-b-2 font-medium text-sm transition-colors ${
-              tab === 'businesses' ? 'border-primary text-primary' : 'border-transparent text-text-muted hover:text-text'
-            }`}
-          >
+          <button onClick={() => setTab('businesses')} className={`py-3 border-b-2 font-medium text-sm transition-colors ${tab === 'businesses' ? 'border-primary text-primary' : 'border-transparent text-text-muted hover:text-text'}`}>
             Businesses ({businesses.length})
           </button>
-          <button
-            onClick={() => setTab('plans')}
-            className={`py-3 border-b-2 font-medium text-sm transition-colors ${
-              tab === 'plans' ? 'border-primary text-primary' : 'border-transparent text-text-muted hover:text-text'
-            }`}
-          >
+          <button onClick={() => setTab('users')} className={`py-3 border-b-2 font-medium text-sm transition-colors ${tab === 'users' ? 'border-primary text-primary' : 'border-transparent text-text-muted hover:text-text'}`}>
+            Users ({users.length})
+          </button>
+          <button onClick={() => setTab('plans')} className={`py-3 border-b-2 font-medium text-sm transition-colors ${tab === 'plans' ? 'border-primary text-primary' : 'border-transparent text-text-muted hover:text-text'}`}>
             Plans ({plans.length})
           </button>
-          <button
-            onClick={() => setTab('analytics')}
-            className={`py-3 border-b-2 font-medium text-sm transition-colors ${
-              tab === 'analytics' ? 'border-primary text-primary' : 'border-transparent text-text-muted hover:text-text'
-            }`}
-          >
+          <button onClick={() => setTab('analytics')} className={`py-3 border-b-2 font-medium text-sm transition-colors ${tab === 'analytics' ? 'border-primary text-primary' : 'border-transparent text-text-muted hover:text-text'}`}>
             Analytics
           </button>
         </nav>
@@ -134,7 +158,6 @@ export default function Admin() {
       {/* Content */}
       {tab === 'analytics' && (
         <div className="space-y-6">
-          {/* Recent Uploads Chart */}
           <div className="bg-surface rounded-xl border border-border p-6">
             <h3 className="text-lg font-semibold text-text mb-4">Recent Uploads (7 Days)</h3>
             {stats?.recent_uploads && stats.recent_uploads.length > 0 ? (
@@ -143,10 +166,7 @@ export default function Admin() {
                   <div key={i} className="flex items-center gap-3">
                     <span className="text-sm text-text-muted w-24">{u.date}</span>
                     <div className="flex-1 bg-surface-alt rounded-full h-4 overflow-hidden">
-                      <div
-                        className="bg-primary h-full rounded-full"
-                        style={{ width: `${Math.min(100, (u.count / Math.max(...stats.recent_uploads.map((x: any) => x.count), 1)) * 100)}%` }}
-                      />
+                      <div className="bg-primary h-full rounded-full" style={{ width: `${Math.min(100, (u.count / Math.max(...stats.recent_uploads.map((x: any) => x.count), 1)) * 100)}%` }} />
                     </div>
                     <span className="text-sm font-medium text-text w-8">{u.count}</span>
                   </div>
@@ -156,8 +176,6 @@ export default function Admin() {
               <p className="text-text-muted">No recent uploads</p>
             )}
           </div>
-
-          {/* Top Events */}
           <div className="bg-surface rounded-xl border border-border p-6">
             <h3 className="text-lg font-semibold text-text mb-4">Top Events by Photo Count</h3>
             {stats?.top_events && stats.top_events.length > 0 ? (
@@ -179,7 +197,6 @@ export default function Admin() {
         </div>
       )}
 
-      {/* Content */}
       {tab === 'businesses' && (
         <div className="bg-surface rounded-xl border border-border overflow-hidden">
           <div className="divide-y divide-border">
@@ -194,17 +211,27 @@ export default function Admin() {
                   <span className={`px-2 py-1 text-xs rounded-full ${biz.status === 'active' ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'}`}>
                     {biz.status}
                   </span>
-                  <button
-                    onClick={() => handleSuspend(biz.id, biz.status)}
-                    className={`px-3 py-1 text-sm rounded-md ${
-                      biz.status === 'active' ? 'text-danger hover:bg-danger-subtle' : 'text-success hover:bg-success-subtle'
-                    }`}
-                  >
+                  <button onClick={() => handleSuspend(biz.id, biz.status)} className={`px-3 py-1 text-sm rounded-md ${biz.status === 'active' ? 'text-danger hover:bg-danger-subtle' : 'text-success hover:bg-success-subtle'}`}>
                     {biz.status === 'active' ? 'Suspend' : 'Activate'}
                   </button>
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {tab === 'users' && (
+        <div className="bg-surface rounded-xl border border-border overflow-hidden">
+          <div className="divide-y divide-border">
+            {users.map((user) => (
+              <UserRow key={user.id} user={user} onUpdate={handleUpdateUser} onDelete={handleDeleteUser} />
+            ))}
+            {users.length === 0 && (
+              <div className="px-6 py-12 text-center">
+                <p className="text-text-muted">No users yet</p>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -229,6 +256,52 @@ export default function Admin() {
             ))}
           </div>
         </div>
+      )}
+    </div>
+  )
+}
+
+function UserRow({ user, onUpdate, onDelete }: { user: User; onUpdate: (id: string, data: any) => void; onDelete: (id: string) => void }) {
+  const [editing, setEditing] = useState(false)
+  const [name, setName] = useState(user.name)
+  const [email, setEmail] = useState(user.email)
+  const [role, setRole] = useState(user.role)
+
+  const handleSave = () => {
+    onUpdate(user.id, { name, email, role })
+    setEditing(false)
+  }
+
+  return (
+    <div className="px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 hover:bg-surface-alt">
+      {editing ? (
+        <div className="flex-1 flex flex-col sm:flex-row gap-3">
+          <input value={name} onChange={(e) => setName(e.target.value)} className="flex-1 px-3 py-1.5 border border-border rounded-lg text-sm" placeholder="Name" />
+          <input value={email} onChange={(e) => setEmail(e.target.value)} className="flex-1 px-3 py-1.5 border border-border rounded-lg text-sm" placeholder="Email" />
+          <select value={role} onChange={(e) => setRole(e.target.value)} className="px-3 py-1.5 border border-border rounded-lg text-sm">
+            <option value="business">Business</option>
+            <option value="admin">Admin</option>
+          </select>
+          <div className="flex gap-2">
+            <button onClick={handleSave} className="px-3 py-1.5 text-sm bg-primary text-white rounded-lg hover:bg-primary-hover">Save</button>
+            <button onClick={() => setEditing(false)} className="px-3 py-1.5 text-sm bg-surface border border-border rounded-lg hover:bg-surface-alt">Cancel</button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-text">{user.name}</p>
+            <p className="text-sm text-text-muted">{user.email}</p>
+            <p className="text-xs text-text-subtle">Since {new Date(user.created_at).toLocaleDateString()}</p>
+          </div>
+          <div className="flex items-center space-x-3">
+            <span className={`px-2 py-1 text-xs rounded-full ${user.role === 'admin' ? 'bg-primary-subtle text-primary' : 'bg-surface-alt text-text-muted'}`}>
+              {user.role}
+            </span>
+            <button onClick={() => setEditing(true)} className="px-3 py-1 text-sm text-primary hover:bg-primary-subtle rounded-md">Edit</button>
+            <button onClick={() => onDelete(user.id)} className="px-3 py-1 text-sm text-danger hover:bg-danger-subtle rounded-md">Delete</button>
+          </div>
+        </>
       )}
     </div>
   )

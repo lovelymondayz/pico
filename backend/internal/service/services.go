@@ -282,6 +282,27 @@ func (ps *PhotoService) Upload(ctx context.Context, eventID, guestID string, fil
 		return nil, err
 	}
 
+	// Check storage limits
+	event, err := ps.s.repo.Events.GetByID(ctx, eventID)
+	if err != nil {
+		return nil, fmt.Errorf("event not found")
+	}
+	
+	business, err := ps.s.repo.Businesses.GetByID(ctx, event.BusinessID)
+	if err == nil {
+		sub, err := ps.s.repo.Subscriptions.GetByBusinessID(ctx, business.ID)
+		if err == nil && sub != nil {
+			plan, err := ps.s.repo.Plans.GetByID(ctx, sub.PlanID)
+			if err == nil && plan != nil {
+				currentStorage, _ := ps.s.repo.Photos.SumStorageUsed(ctx, business.ID)
+				newStorageMB := float64(len(fileBytes)) / (1024 * 1024)
+				if currentStorage+newStorageMB > float64(plan.MaxStorageMB) {
+					return nil, fmt.Errorf("storage limit reached (%d MB)", plan.MaxStorageMB)
+				}
+			}
+		}
+	}
+
 	processed, width, height, err := ps.s.photoProc.ProcessImage(fileBytes, ps.s.config.ImageMaxWidth, ps.s.config.ImageQuality)
 	if err != nil {
 		return nil, fmt.Errorf("processing image: %w", err)
@@ -432,6 +453,18 @@ func (ps *PhotoService) GenerateQR(ctx context.Context, url string, size int) ([
 // AdminService
 type AdminService struct {
 	s *Services
+}
+
+func (as *AdminService) ListAllUsers(ctx context.Context, limit, offset int) ([]model.User, error) {
+	return as.s.repo.Users.GetAll(ctx, limit, offset)
+}
+
+func (as *AdminService) UpdateUser(ctx context.Context, userID, name, email, role string) error {
+	return as.s.repo.Users.Update(ctx, userID, name, email, role)
+}
+
+func (as *AdminService) DeleteUser(ctx context.Context, userID string) error {
+	return as.s.repo.Users.Delete(ctx, userID)
 }
 
 func (as *AdminService) GetStats(ctx context.Context) (*model.AdminStats, error) {

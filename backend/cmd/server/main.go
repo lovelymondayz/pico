@@ -119,6 +119,9 @@ func main() {
 		admin.GET("/businesses", h.ListAllBusinesses)
 		admin.GET("/events", h.ListAllEvents)
 		admin.GET("/stats", h.AdminStats)
+		admin.GET("/users", h.ListAllUsers)
+		admin.PUT("/users/:id", h.UpdateUser)
+		admin.DELETE("/users/:id", h.DeleteUser)
 		admin.PUT("/businesses/:id/suspend", h.SuspendBusiness)
 	}
 
