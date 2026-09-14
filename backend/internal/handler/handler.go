@@ -1,8 +1,10 @@
 package handler
 
 import (
+	"archive/zip"
 	"bytes"
 	"fmt"
+	"io"
 	"net/http"
 	"pico/internal/config"
 	"pico/internal/model"
@@ -10,7 +12,6 @@ import (
 	"pico/internal/storage"
 	"strconv"
 	"time"
-	"archive/zip"
 
 	"github.com/gin-gonic/gin"
 )
@@ -313,9 +314,14 @@ func (h *Handler) UploadPhoto(c *gin.Context) {
 		return
 	}
 
-	fileBytes := make([]byte, header.Size)
-	if _, err := file.Read(fileBytes); err != nil {
+	fileBytes, err := io.ReadAll(file)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to read file"})
+		return
+	}
+
+	if len(fileBytes) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "empty file"})
 		return
 	}
 

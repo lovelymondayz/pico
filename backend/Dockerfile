@@ -14,6 +14,9 @@ WORKDIR /app
 
 RUN apk add --no-cache ca-certificates postgresql-client
 
+# Create data directory owned by non-root user (1000:1000)
+RUN mkdir -p /data/photos && chown -R 1000:1000 /data
+
 COPY --from=builder /app/server .
 
 EXPOSE 8082
