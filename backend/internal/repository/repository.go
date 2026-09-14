@@ -477,6 +477,12 @@ func (r *PhotoRepo) GetByID(ctx context.Context, id string) (*model.Photo, error
 	return &photo, nil
 }
 
+func (r *PhotoRepo) Update(ctx context.Context, photo *model.Photo) error {
+	query := `UPDATE photos SET storage_path = $1, thumbnail_path = $2, url = $3, thumbnail_url = $4 WHERE id = $5`
+	_, err := r.db.pool.Exec(ctx, query, photo.StoragePath, photo.ThumbnailPath, photo.URL, photo.ThumbnailURL, photo.ID)
+	return err
+}
+
 func (r *PhotoRepo) GetByGuest(ctx context.Context, guestID string, limit, offset int) ([]model.Photo, error) {
 	query := `SELECT id, event_id, guest_id, storage_path, thumbnail_path, url, thumbnail_url, COALESCE(immich_asset_id, ''), original_filename, file_size_bytes, mime_type, width, height, status, created_at FROM photos WHERE guest_id = $1 AND status = 'active' ORDER BY created_at DESC LIMIT $2 OFFSET $3`
 	rows, err := r.db.pool.Query(ctx, query, guestID, limit, offset)

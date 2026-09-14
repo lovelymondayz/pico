@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import { getEvent, registerGuest, listPhotos, uploadPhoto, searchPhotos, listMyPhotos } from '../services/api'
 
 interface Photo {
-  id: number
+  id: string
   url: string
   thumbnail_url: string
   original_filename: string
@@ -21,10 +21,9 @@ export default function EventGallery() {
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [lightbox, setLightbox] = useState<Photo | null>(null)
-  const [_showUpload, setShowUpload] = useState(false)
   const [showMyPhotos, setShowMyPhotos] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [sortBy, setSortBy] = useState('newest')
+  const [error, setError] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -40,7 +39,7 @@ export default function EventGallery() {
       const res = await getEvent(slug!)
       setEvent(res.event || res)
     } catch {
-      // Event not found
+      setError('Event not found')
     } finally {
       setLoading(false)
     }
@@ -67,11 +66,11 @@ export default function EventGallery() {
     if (!guestName.trim() || !slug) return
     try {
       const res = await registerGuest(slug, guestName)
-      setGuestToken(res.guest_token || res.guest?.guest_token)
-      localStorage.setItem(`guest_${slug}`, res.guest_token || res.guest?.guest_token)
-      setShowUpload(true)
+      const token = res.guest_token || res.guest?.guest_token
+      setGuestToken(token)
+      localStorage.setItem(`guest_${slug}`, token)
     } catch {
-      // Silently fail
+      setError('Failed to register as guest')
     }
   }
 
@@ -79,19 +78,29 @@ export default function EventGallery() {
     const file = e.target.files?.[0]
     if (!file || !slug) return
     setUploading(true)
+    setError('')
     try {
       await uploadPhoto(slug, guestToken || '', file)
+      // Reload photos multiple times with delay to wait for processing
       await loadPhotos()
-    } catch {
-      // Silently fail
+      setTimeout(() => loadPhotos(), 500)
+      setTimeout(() => loadPhotos(), 1500)
+    } catch (err: any) {
+      setError(err.message || 'Upload failed')
     }
     setUploading(false)
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
+  const copyLink = () => {
+    const link = `${window.location.origin}/e/${slug}`
+    navigator.clipboard.writeText(link)
+    alert('Guest link copied!')
+  }
+
   if (loading) return <div className="flex items-center justify-center h-screen"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>
 
-  if (!event) return <div className="text-center py-20"><p className="text-text-muted">Event not found</p></div>
+  if (error && !event) return <div className="text-center py-20"><p className="text-danger">{error}</p></div>
 
   return (
     <div className="min-h-screen bg-bg">
@@ -99,11 +108,17 @@ export default function EventGallery() {
       <div className="relative h-48 bg-gradient-to-r from-primary to-primary-active">
         <div className="absolute inset-0 bg-black/30" />
         <div className="absolute inset-0 flex items-center justify-center">
-          <h1 className="text-3xl font-bold text-white text-center px-4">{event.name}</h1>
+          <h1 className="text-3xl font-bold text-white text-center px-4">{event?.name}</h1>
         </div>
       </div>
 
       <div className="max-w-6xl mx-auto px-4 py-8">
+        {error && (
+          <div className="mb-6 p-3 bg-danger-subtle border border-danger rounded-lg text-sm text-danger">
+            {error}
+          </div>
+        )}
+
         {/* Guest Registration */}
         {!guestToken && (
           <div className="mb-8 bg-surface rounded-xl border border-border p-6 max-w-md mx-auto">
@@ -121,6 +136,19 @@ export default function EventGallery() {
                 Join
               </button>
             </form>
+            <div className="mt-4">
+              <p className="text-xs text-text-muted mb-2">Share this link with other guests:</p>
+              <div className="flex gap-2">
+                <input
+                  readOnly
+                  value={`${window.location.origin}/e/${slug}`}
+                  className="flex-1 px-3 py-1.5 text-xs bg-surface-alt border border-border rounded"
+                />
+                <button onClick={copyLink} className="px-3 py-1.5 text-xs bg-surface border border-border rounded hover:bg-surface-alt transition-colors">
+                  Copy
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -135,21 +163,13 @@ export default function EventGallery() {
               className="hidden"
               id="photo-upload"
             />
-            <div className="flex gap-3">
+            <div className="flex gap-3 flex-wrap justify-center">
               <label
                 htmlFor="photo-upload"
                 className="px-6 py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary-hover cursor-pointer transition-colors"
               >
                 {uploading ? 'Uploading...' : '+ Upload Photo'}
               </label>
-              <button
-                onClick={() => {
-                  if (fileInputRef.current) fileInputRef.current.click()
-                }}
-                className="px-6 py-3 bg-surface border border-border text-text rounded-lg font-medium hover:bg-surface-alt transition-colors sm:hidden"
-              >
-                📷 Camera
-              </button>
               <button
                 onClick={() => setShowMyPhotos(!showMyPhotos)}
                 className={`px-6 py-3 rounded-lg font-medium transition-colors ${
@@ -158,29 +178,21 @@ export default function EventGallery() {
                     : 'bg-surface border border-border text-text hover:bg-surface-alt'
                 }`}
               >
-                {showMyPhotos ? '📷 All Photos' : '📷 My Photos'}
+                {showMyPhotos ? 'All Photos' : 'My Photos'}
               </button>
             </div>
           </div>
         )}
 
-        {/* Search and Filter */}
-        <div className="mb-6 flex flex-col sm:flex-row gap-3">
+        {/* Search */}
+        <div className="mb-6">
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by filename or guest name..."
-            className="flex-1 px-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+            className="w-full px-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
           />
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="px-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
-          >
-            <option value="newest">Newest First</option>
-            <option value="oldest">Oldest First</option>
-          </select>
         </div>
 
         {/* Photo Grid */}

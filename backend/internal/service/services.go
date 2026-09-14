@@ -296,7 +296,6 @@ func (ps *PhotoService) Upload(ctx context.Context, eventID, guestID string, fil
 		return nil, fmt.Errorf("generating thumbnail: %w", err)
 	}
 
-	id := uuid.New().String()
 	var assetID, photoPath, thumbPath string
 
 	if immichStore, ok := ps.s.storage.(*storage.ImmichStorage); ok {
@@ -308,17 +307,8 @@ func (ps *PhotoService) Upload(ctx context.Context, eventID, guestID string, fil
 		photoPath = assetID
 		thumbPath = assetID
 	} else {
-		photoPath = fmt.Sprintf("%s/%s.jpg", eventID, id)
-		thumbPath = fmt.Sprintf("%s/%s_thumb.jpg", eventID, id)
-		fullPhotoPath := ps.s.storage.GetFullPath(photoPath)
-		fullThumbPath := ps.s.storage.GetFullPath(thumbPath)
-
-		if err := ps.s.storage.SaveBytes(fullPhotoPath, processed); err != nil {
-			return nil, fmt.Errorf("saving photo: %w", err)
-		}
-		if err := ps.s.storage.SaveBytes(fullThumbPath, thumbnail); err != nil {
-			return nil, fmt.Errorf("saving thumbnail: %w", err)
-		}
+		photoPath = "temp"
+		thumbPath = "temp_thumb"
 	}
 
 	photo := &model.Photo{
@@ -326,8 +316,8 @@ func (ps *PhotoService) Upload(ctx context.Context, eventID, guestID string, fil
 		GuestID:          guestID,
 		StoragePath:      photoPath,
 		ThumbnailPath:    thumbPath,
-		URL:              fmt.Sprintf("/photos/%s", id),
-		ThumbnailURL:     fmt.Sprintf("/photos/%s/thumb", id),
+		URL:              "",
+		ThumbnailURL:     "",
 		ImmichAssetID:    assetID,
 		OriginalFilename: filename,
 		FileSizeBytes:    int64(len(processed)),
@@ -337,7 +327,35 @@ func (ps *PhotoService) Upload(ctx context.Context, eventID, guestID string, fil
 		Status:           "active",
 	}
 
-	return ps.s.repo.Photos.Create(ctx, photo)
+	created, err := ps.s.repo.Photos.Create(ctx, photo)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, ok := ps.s.storage.(*storage.ImmichStorage); !ok {
+		photoPath = fmt.Sprintf("%s/%s.jpg", eventID, created.ID)
+		thumbPath = fmt.Sprintf("%s/%s_thumb.jpg", eventID, created.ID)
+		fullPhotoPath := ps.s.storage.GetFullPath(photoPath)
+		fullThumbPath := ps.s.storage.GetFullPath(thumbPath)
+
+		if err := ps.s.storage.SaveBytes(fullPhotoPath, processed); err != nil {
+			return nil, fmt.Errorf("saving photo: %w", err)
+		}
+		if err := ps.s.storage.SaveBytes(fullThumbPath, thumbnail); err != nil {
+			return nil, fmt.Errorf("saving thumbnail: %w", err)
+		}
+
+		created.StoragePath = photoPath
+		created.ThumbnailPath = thumbPath
+	}
+
+	created.URL = fmt.Sprintf("/photos/%s", created.ID)
+	created.ThumbnailURL = fmt.Sprintf("/photos/%s/thumb", created.ID)
+	if err := ps.s.repo.Photos.Update(ctx, created); err != nil {
+		return nil, fmt.Errorf("updating photo: %w", err)
+	}
+
+	return created, nil
 }
 
 func (ps *PhotoService) UploadWithAlbum(ctx context.Context, eventID, guestID string, fileBytes []byte, filename, contentType string) (*model.Photo, error) {
