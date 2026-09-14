@@ -7,6 +7,7 @@ import (
 	_ "image/jpeg"
 	_ "image/png"
 	"image/jpeg"
+	_ "golang.org/x/image/webp"
 
 	"github.com/skip2/go-qrcode"
 	"golang.org/x/image/draw"

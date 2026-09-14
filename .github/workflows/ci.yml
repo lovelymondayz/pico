@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: pico_test
+          POSTGRES_USER: pico
+          POSTGRES_PASSWORD: testpass
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          go mod download
+
+      - name: Run migrations
+        run: |
+          cd backend
+          export DATABASE_URL="postgres://pico:testpass@localhost:5432/pico_test?sslmode=disable"
+          go run cmd/server/main.go &
+          sleep 5
+          kill %1 || true
+
+      - name: Run tests
+        run: |
+          cd backend
+          go test ./... -v -cover
+
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build backend
+        run: |
+          cd backend
+          docker build -t pico-backend .
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          docker build -t pico-frontend .
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to server
+        run: |
+          echo "Add your deployment script here"
+          # Example: ssh deploy@server "cd /opt/pico && git pull && docker compose up -d --build"
