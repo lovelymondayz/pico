@@ -7,11 +7,18 @@ import EventCreate from './pages/EventCreate'
 import EventDetail from './pages/EventDetail'
 import EventGallery from './pages/EventGallery'
 import Admin from './pages/Admin'
+import Home from './pages/Home'
 import { useAuthStore } from './stores/auth'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   if (!isAuthenticated) return <Navigate to="/login" replace />
+  return <>{children}</>
+}
+
+function GuestRoute({ children }: { children: React.ReactNode }) {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  if (isAuthenticated) return <Navigate to="/dashboard" replace />
   return <>{children}</>
 }
 
@@ -25,24 +32,17 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/e/:slug" element={<EventGallery />} />
-        <Route path="/" element={
-          <Layout>
-            <div className="text-center py-20">
-              <h1 className="text-4xl font-bold text-text">Event Photo Sharing</h1>
-              <p className="mt-4 text-lg text-text-muted">Collect and share memories from your events</p>
-              <div className="mt-8 flex justify-center gap-4">
-                <a href="/register" className="px-6 py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary-hover transition-colors">Get Started</a>
-                <a href="/login" className="px-6 py-3 bg-surface border border-border text-text rounded-lg font-medium hover:bg-surface-alt transition-colors">Sign In</a>
-              </div>
-            </div>
-          </Layout>
-        } />
+        {/* Public landing page */}
+        <Route path="/" element={<Home />} />
 
-        {/* Business */}
+        {/* Auth - redirect to dashboard if already logged in */}
+        <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
+        <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
+
+        {/* Event gallery (public) */}
+        <Route path="/e/:slug" element={<EventGallery />} />
+
+        {/* Business routes */}
         <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
         <Route path="/events" element={<Navigate to="/dashboard" replace />} />
         <Route path="/events/new" element={<ProtectedRoute><Layout><EventCreate /></Layout></ProtectedRoute>} />
