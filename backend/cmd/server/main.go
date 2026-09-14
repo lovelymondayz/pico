@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"net/http"
 	"pico/internal/config"
 	"pico/internal/handler"
 	"pico/internal/middleware"
@@ -49,6 +50,7 @@ func main() {
 
 	// Setup router
 	router := gin.Default()
+	gin.SetMode(gin.ReleaseMode)
 
 	// CORS
 	corsOrigins := strings.Split(cfg.CORSOrigins, ",")
@@ -62,12 +64,18 @@ func main() {
 
 	// Rate limiting
 	rateLimit := middleware.NewRateLimiter(cfg.RateLimitRequests, cfg.RateLimitWindow)
+	authRateLimit := middleware.NewRateLimiter(5, 60)
+
+	// Health check
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": "healthy", "service": "pico"})
+	})
 
 	// Public routes
 	public := router.Group("/api/v1")
 	{
-		public.POST("/auth/register", h.Register)
-		public.POST("/auth/login", h.Login)
+		public.POST("/auth/register", authRateLimit.Limit(), h.Register)
+		public.POST("/auth/login", authRateLimit.Limit(), h.Login)
 		public.GET("/e/:slug", h.GetEvent)
 		public.POST("/e/:slug/guest", h.RegisterGuest)
 		public.GET("/e/:slug/photos", h.ListPhotos)

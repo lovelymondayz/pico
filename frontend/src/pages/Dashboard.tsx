@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { getBusinessEvents, businessStats, closeEvent } from '../services/api'
 import { useAuthStore } from '../stores/auth'
+import { useToastStore } from '../stores/toast'
 
 interface Event {
   id: string
@@ -18,8 +19,8 @@ export default function Dashboard() {
   const [events, setEvents] = useState<Event[]>([])
   const [stats, setStats] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
   const { user } = useAuthStore()
+  const addToast = useToastStore((s) => s.addToast)
 
   useEffect(() => {
     loadData()
@@ -33,8 +34,8 @@ export default function Dashboard() {
       ])
       setEvents(eventsRes.events || [])
       setStats(statsRes?.stats || null)
-    } catch (err: any) {
-      setError(err.message || 'Failed to load dashboard')
+    } catch {
+      addToast('Failed to load dashboard', 'error')
     } finally {
       setLoading(false)
     }
@@ -44,15 +45,24 @@ export default function Dashboard() {
     if (!confirm('Are you sure you want to close this event? This cannot be undone.')) return
     try {
       await closeEvent(id)
+      addToast('Event closed', 'success')
       loadData()
-    } catch (err: any) {
-      alert(err.message || 'Failed to close event')
+    } catch {
+      addToast('Failed to close event', 'error')
     }
   }
 
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>
-
-  if (error) return <div className="max-w-2xl mx-auto"><div className="p-4 bg-danger-subtle border border-danger rounded-lg text-danger">{error}</div></div>
+  if (loading) {
+    return (
+      <div className="space-y-8">
+        <div className="h-8 w-48 bg-surface-alt rounded animate-pulse" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1,2,3,4].map(i => <div key={i} className="h-28 bg-surface-alt rounded-xl animate-pulse" />)}
+        </div>
+        <div className="h-64 bg-surface-alt rounded-xl animate-pulse" />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-8">
@@ -102,10 +112,7 @@ export default function Dashboard() {
                 <span className={`px-2 py-1 text-xs rounded-full ${event.status === 'active' ? 'bg-success-subtle text-success' : 'bg-surface-alt text-text-muted'}`}>
                   {event.status}
                 </span>
-                <button
-                  onClick={() => handleClose(event.id)}
-                  className="px-3 py-1 text-sm text-danger hover:bg-danger-subtle rounded-md"
-                >
+                <button onClick={() => handleClose(event.id)} className="px-3 py-1 text-sm text-danger hover:bg-danger-subtle rounded-md">
                   Close
                 </button>
               </div>

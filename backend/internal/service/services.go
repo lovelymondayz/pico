@@ -107,15 +107,11 @@ func (bs *BusinessService) GetStats(ctx context.Context, businessID string) (*mo
 	totalPhotos, _ := bs.s.repo.Photos.CountByBusiness(ctx, businessID)
 	storageMB, _ := bs.s.repo.Photos.SumStorageUsed(ctx, businessID)
 	perEvent, _ := bs.s.repo.Photos.GetEventPhotoCounts(ctx, businessID)
+	totalGuests, _ := bs.s.repo.Guests.CountGuestsByBusiness(ctx, businessID)
 
 	events, err := bs.s.repo.Events.GetByBusinessID(ctx, businessID, 1000, 0)
 	if err != nil {
 		return nil, err
-	}
-	totalGuests := 0
-	for _, e := range events {
-		c, _ := bs.s.repo.Guests.CountByEvent(ctx, e.ID)
-		totalGuests += c
 	}
 
 	sub, _ := bs.s.repo.Subscriptions.GetByBusinessID(ctx, businessID)

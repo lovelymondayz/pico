@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Layout from './components/Layout'
+import ToastContainer from './components/Toast'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
@@ -7,6 +8,7 @@ import EventCreate from './pages/EventCreate'
 import EventDetail from './pages/EventDetail'
 import EventGallery from './pages/EventGallery'
 import Admin from './pages/Admin'
+import NotFound from './pages/NotFound'
 import Home from './pages/Home'
 import { useAuthStore } from './stores/auth'
 
@@ -31,6 +33,7 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <BrowserRouter>
+      <ToastContainer />
       <Routes>
         {/* Public landing page */}
         <Route path="/" element={<Home />} />
@@ -51,8 +54,8 @@ export default function App() {
         {/* Admin */}
         <Route path="/admin" element={<AdminRoute><Layout><Admin /></Layout></AdminRoute>} />
 
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        {/* 404 */}
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   )

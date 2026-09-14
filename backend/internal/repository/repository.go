@@ -79,14 +79,6 @@ func (db *DB) WithTx(ctx context.Context, fn func(pgx.Tx) error) error {
 	return nil
 }
 
-// parseUUID safely parses a UUID string
-func parseUUID(s string) (string, error) {
-	if s == "" {
-		return "", fmt.Errorf("empty UUID")
-	}
-	return s, nil
-}
-
 // UserRepo operations
 type UserRepo struct{ db *DB }
 
@@ -447,6 +439,16 @@ func (r *GuestRepo) CountByEvent(ctx context.Context, eventID string) (int, erro
 	return count, err
 }
 
+func (r *GuestRepo) CountGuestsByBusiness(ctx context.Context, businessID string) (int, error) {
+	var count int
+	err := r.db.pool.QueryRow(ctx, `
+		SELECT COUNT(*) FROM guests g
+		JOIN events e ON g.event_id = e.id
+		WHERE e.business_id = $1
+	`, businessID).Scan(&count)
+	return count, err
+}
+
 func (r *GuestRepo) GetPhotoCount(ctx context.Context, guestID string) (int, error) {
 	var count int
 	err := r.db.pool.QueryRow(ctx, `SELECT photo_count FROM guests WHERE id = $1`, guestID).Scan(&count)
@@ -467,6 +469,12 @@ func (r *PhotoRepo) Create(ctx context.Context, photo *model.Photo) (*model.Phot
 	return photo, nil
 }
 
+func (r *PhotoRepo) Update(ctx context.Context, photo *model.Photo) error {
+	query := `UPDATE photos SET storage_path = $1, thumbnail_path = $2, url = $3, thumbnail_url = $4 WHERE id = $5`
+	_, err := r.db.pool.Exec(ctx, query, photo.StoragePath, photo.ThumbnailPath, photo.URL, photo.ThumbnailURL, photo.ID)
+	return err
+}
+
 func (r *PhotoRepo) GetByID(ctx context.Context, id string) (*model.Photo, error) {
 	query := `SELECT id, event_id, guest_id, storage_path, thumbnail_path, url, thumbnail_url, COALESCE(immich_asset_id, ''), original_filename, file_size_bytes, mime_type, width, height, status, created_at FROM photos WHERE id = $1`
 	var photo model.Photo
@@ -475,12 +483,6 @@ func (r *PhotoRepo) GetByID(ctx context.Context, id string) (*model.Photo, error
 		return nil, fmt.Errorf("fetching photo: %w", err)
 	}
 	return &photo, nil
-}
-
-func (r *PhotoRepo) Update(ctx context.Context, photo *model.Photo) error {
-	query := `UPDATE photos SET storage_path = $1, thumbnail_path = $2, url = $3, thumbnail_url = $4 WHERE id = $5`
-	_, err := r.db.pool.Exec(ctx, query, photo.StoragePath, photo.ThumbnailPath, photo.URL, photo.ThumbnailURL, photo.ID)
-	return err
 }
 
 func (r *PhotoRepo) GetByGuest(ctx context.Context, guestID string, limit, offset int) ([]model.Photo, error) {
