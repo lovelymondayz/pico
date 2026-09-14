@@ -79,6 +79,14 @@ func (db *DB) WithTx(ctx context.Context, fn func(pgx.Tx) error) error {
 	return nil
 }
 
+// parseUUID safely parses a UUID string
+func parseUUID(s string) (string, error) {
+	if s == "" {
+		return "", fmt.Errorf("empty UUID")
+	}
+	return s, nil
+}
+
 // UserRepo operations
 type UserRepo struct{ db *DB }
 
@@ -109,7 +117,7 @@ func (r *UserRepo) GetByEmail(ctx context.Context, email string) (*model.User, e
 	return &user, nil
 }
 
-func (r *UserRepo) GetByID(ctx context.Context, id int64) (*model.User, error) {
+func (r *UserRepo) GetByID(ctx context.Context, id string) (*model.User, error) {
 	query := `SELECT id, email, password_hash, name, role, created_at FROM users WHERE id = $1`
 	var user model.User
 	err := r.db.pool.QueryRow(ctx, query, id).Scan(
@@ -124,7 +132,7 @@ func (r *UserRepo) GetByID(ctx context.Context, id int64) (*model.User, error) {
 // BusinessRepo operations
 type BusinessRepo struct{ db *DB }
 
-func (r *BusinessRepo) Create(ctx context.Context, userID int64, name, slug string) (*model.Business, error) {
+func (r *BusinessRepo) Create(ctx context.Context, userID, name, slug string) (*model.Business, error) {
 	query := `INSERT INTO businesses (user_id, name, slug) VALUES ($1, $2, $3) RETURNING id, user_id, name, slug, created_at`
 	var biz model.Business
 	err := r.db.pool.QueryRow(ctx, query, userID, name, slug).Scan(
@@ -136,19 +144,7 @@ func (r *BusinessRepo) Create(ctx context.Context, userID int64, name, slug stri
 	return &biz, nil
 }
 
-func (r *BusinessRepo) GetByUserID(ctx context.Context, userID int64) (*model.Business, error) {
-	query := `SELECT id, user_id, name, slug, created_at FROM businesses WHERE user_id = $1`
-	var biz model.Business
-	err := r.db.pool.QueryRow(ctx, query, userID).Scan(
-		&biz.ID, &biz.UserID, &biz.Name, &biz.Slug, &biz.CreatedAt,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("fetching business by user id: %w", err)
-	}
-	return &biz, nil
-}
-
-func (r *BusinessRepo) GetByID(ctx context.Context, id int64) (*model.Business, error) {
+func (r *BusinessRepo) GetByID(ctx context.Context, id string) (*model.Business, error) {
 	query := `SELECT id, user_id, name, slug, created_at FROM businesses WHERE id = $1`
 	var biz model.Business
 	err := r.db.pool.QueryRow(ctx, query, id).Scan(
@@ -156,6 +152,18 @@ func (r *BusinessRepo) GetByID(ctx context.Context, id int64) (*model.Business, 
 	)
 	if err != nil {
 		return nil, fmt.Errorf("fetching business: %w", err)
+	}
+	return &biz, nil
+}
+
+func (r *BusinessRepo) GetByUserID(ctx context.Context, userID string) (*model.Business, error) {
+	query := `SELECT id, user_id, name, slug, created_at FROM businesses WHERE user_id = $1`
+	var biz model.Business
+	err := r.db.pool.QueryRow(ctx, query, userID).Scan(
+		&biz.ID, &biz.UserID, &biz.Name, &biz.Slug, &biz.CreatedAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("fetching business by user id: %w", err)
 	}
 	return &biz, nil
 }
@@ -197,7 +205,7 @@ func (r *BusinessRepo) Count(ctx context.Context) (int, error) {
 	return count, err
 }
 
-func (r *BusinessRepo) SetSuspended(ctx context.Context, id int64, suspended bool) error {
+func (r *BusinessRepo) SetSuspended(ctx context.Context, id string, suspended bool) error {
 	status := "active"
 	if suspended {
 		status = "suspended"
@@ -220,7 +228,7 @@ func (r *PlanRepo) Create(ctx context.Context, plan *model.Plan) (*model.Plan, e
 	return plan, nil
 }
 
-func (r *PlanRepo) GetByID(ctx context.Context, id int64) (*model.Plan, error) {
+func (r *PlanRepo) GetByID(ctx context.Context, id string) (*model.Plan, error) {
 	query := `SELECT id, name, max_photos, max_events, photos_per_guest, max_storage_mb, price, COALESCE(features_json, '{}'), created_at FROM plans WHERE id = $1`
 	var plan model.Plan
 	err := r.db.pool.QueryRow(ctx, query, id).Scan(
@@ -257,7 +265,7 @@ func (r *PlanRepo) Update(ctx context.Context, plan *model.Plan) error {
 	return err
 }
 
-func (r *PlanRepo) Delete(ctx context.Context, id int64) error {
+func (r *PlanRepo) Delete(ctx context.Context, id string) error {
 	_, err := r.db.pool.Exec(ctx, `DELETE FROM plans WHERE id = $1`, id)
 	return err
 }
@@ -271,7 +279,7 @@ func (r *PlanRepo) Count(ctx context.Context) (int, error) {
 // SubscriptionRepo operations
 type SubscriptionRepo struct{ db *DB }
 
-func (r *SubscriptionRepo) Create(ctx context.Context, businessID, planID int64) (*model.Subscription, error) {
+func (r *SubscriptionRepo) Create(ctx context.Context, businessID, planID string) (*model.Subscription, error) {
 	query := `INSERT INTO subscriptions (business_id, plan_id, status) VALUES ($1, $2, 'active') RETURNING id, business_id, plan_id, status, current_period_start, current_period_end, created_at`
 	var sub model.Subscription
 	err := r.db.pool.QueryRow(ctx, query, businessID, planID).Scan(
@@ -283,7 +291,7 @@ func (r *SubscriptionRepo) Create(ctx context.Context, businessID, planID int64)
 	return &sub, nil
 }
 
-func (r *SubscriptionRepo) GetByBusinessID(ctx context.Context, businessID int64) (*model.Subscription, error) {
+func (r *SubscriptionRepo) GetByBusinessID(ctx context.Context, businessID string) (*model.Subscription, error) {
 	query := `SELECT id, business_id, plan_id, status, current_period_start, current_period_end, created_at FROM subscriptions WHERE business_id = $1 ORDER BY created_at DESC LIMIT 1`
 	var sub model.Subscription
 	err := r.db.pool.QueryRow(ctx, query, businessID).Scan(
@@ -299,9 +307,9 @@ func (r *SubscriptionRepo) GetByBusinessID(ctx context.Context, businessID int64
 type EventRepo struct{ db *DB }
 
 func (r *EventRepo) Create(ctx context.Context, event *model.Event) (*model.Event, error) {
-	query := `INSERT INTO events (business_id, name, slug, description, start_date, end_date, status, total_photo_limit, guest_photo_limit, allow_downloads, uuid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, gen_random_uuid()) RETURNING id, created_at, updated_at, uuid`
+	query := `INSERT INTO events (business_id, name, slug, description, start_date, end_date, status, total_photo_limit, guest_photo_limit, allow_downloads) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id, created_at, updated_at`
 	err := r.db.pool.QueryRow(ctx, query, event.BusinessID, event.Name, event.Slug, event.Description, event.StartDate, event.EndDate, event.Status, event.TotalPhotoLimit, event.GuestPhotoLimit, event.AllowDownloads).Scan(
-		&event.ID, &event.CreatedAt, &event.UpdatedAt, &event.UUID,
+		&event.ID, &event.CreatedAt, &event.UpdatedAt,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("creating event: %w", err)
@@ -309,23 +317,11 @@ func (r *EventRepo) Create(ctx context.Context, event *model.Event) (*model.Even
 	return event, nil
 }
 
-func (r *EventRepo) GetByID(ctx context.Context, id int64) (*model.Event, error) {
-	query := `SELECT e.id, e.uuid, e.business_id, e.name, e.slug, COALESCE(e.description, ''), e.start_date, e.end_date, e.status, e.total_photo_limit, e.guest_photo_limit, e.allow_downloads, e.created_at, e.updated_at, COALESCE(p.cnt, 0) as photo_count FROM events e LEFT JOIN (SELECT event_id, COUNT(*) as cnt FROM photos WHERE status = 'active' GROUP BY event_id) p ON e.id = p.event_id WHERE e.id = $1`
+func (r *EventRepo) GetByID(ctx context.Context, id string) (*model.Event, error) {
+	query := `SELECT e.id, e.business_id, e.name, e.slug, COALESCE(e.description, ''), e.start_date, e.end_date, e.status, e.total_photo_limit, e.guest_photo_limit, e.allow_downloads, e.created_at, e.updated_at, COALESCE(p.cnt, 0) as photo_count FROM events e LEFT JOIN (SELECT event_id, COUNT(*) as cnt FROM photos WHERE status = 'active' GROUP BY event_id) p ON e.id = p.event_id WHERE e.id = $1`
 	var event model.Event
 	err := r.db.pool.QueryRow(ctx, query, id).Scan(
-		&event.ID, &event.UUID, &event.BusinessID, &event.Name, &event.Slug, &event.Description, &event.StartDate, &event.EndDate, &event.Status, &event.TotalPhotoLimit, &event.GuestPhotoLimit, &event.AllowDownloads, &event.CreatedAt, &event.UpdatedAt, &event.PhotoCount,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("fetching event: %w", err)
-	}
-	return &event, nil
-}
-
-func (r *EventRepo) GetByUUID(ctx context.Context, uuid string) (*model.Event, error) {
-	query := `SELECT e.id, e.uuid, e.business_id, e.name, e.slug, COALESCE(e.description, ''), e.start_date, e.end_date, e.status, e.total_photo_limit, e.guest_photo_limit, e.allow_downloads, e.created_at, e.updated_at, COALESCE(p.cnt, 0) as photo_count FROM events e LEFT JOIN (SELECT event_id, COUNT(*) as cnt FROM photos WHERE status = 'active' GROUP BY event_id) p ON e.id = p.event_id WHERE e.uuid = $1`
-	var event model.Event
-	err := r.db.pool.QueryRow(ctx, query, uuid).Scan(
-		&event.ID, &event.UUID, &event.BusinessID, &event.Name, &event.Slug, &event.Description, &event.StartDate, &event.EndDate, &event.Status, &event.TotalPhotoLimit, &event.GuestPhotoLimit, &event.AllowDownloads, &event.CreatedAt, &event.UpdatedAt, &event.PhotoCount,
+		&event.ID, &event.BusinessID, &event.Name, &event.Slug, &event.Description, &event.StartDate, &event.EndDate, &event.Status, &event.TotalPhotoLimit, &event.GuestPhotoLimit, &event.AllowDownloads, &event.CreatedAt, &event.UpdatedAt, &event.PhotoCount,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("fetching event: %w", err)
@@ -334,10 +330,10 @@ func (r *EventRepo) GetByUUID(ctx context.Context, uuid string) (*model.Event, e
 }
 
 func (r *EventRepo) GetBySlug(ctx context.Context, slug string) (*model.Event, error) {
-	query := `SELECT e.id, e.uuid, e.business_id, e.name, e.slug, COALESCE(e.description, ''), e.start_date, e.end_date, e.status, e.total_photo_limit, e.guest_photo_limit, e.allow_downloads, e.created_at, e.updated_at, COALESCE(p.cnt, 0) as photo_count FROM events e LEFT JOIN (SELECT event_id, COUNT(*) as cnt FROM photos WHERE status = 'active' GROUP BY event_id) p ON e.id = p.event_id WHERE e.slug = $1`
+	query := `SELECT e.id, e.business_id, e.name, e.slug, COALESCE(e.description, ''), e.start_date, e.end_date, e.status, e.total_photo_limit, e.guest_photo_limit, e.allow_downloads, e.created_at, e.updated_at, COALESCE(p.cnt, 0) as photo_count FROM events e LEFT JOIN (SELECT event_id, COUNT(*) as cnt FROM photos WHERE status = 'active' GROUP BY event_id) p ON e.id = p.event_id WHERE e.slug = $1`
 	var event model.Event
 	err := r.db.pool.QueryRow(ctx, query, slug).Scan(
-		&event.ID, &event.UUID, &event.BusinessID, &event.Name, &event.Slug, &event.Description, &event.StartDate, &event.EndDate, &event.Status, &event.TotalPhotoLimit, &event.GuestPhotoLimit, &event.AllowDownloads, &event.CreatedAt, &event.UpdatedAt, &event.PhotoCount,
+		&event.ID, &event.BusinessID, &event.Name, &event.Slug, &event.Description, &event.StartDate, &event.EndDate, &event.Status, &event.TotalPhotoLimit, &event.GuestPhotoLimit, &event.AllowDownloads, &event.CreatedAt, &event.UpdatedAt, &event.PhotoCount,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("fetching event: %w", err)
@@ -345,8 +341,8 @@ func (r *EventRepo) GetBySlug(ctx context.Context, slug string) (*model.Event, e
 	return &event, nil
 }
 
-func (r *EventRepo) GetByBusinessID(ctx context.Context, businessID int64, limit, offset int) ([]model.Event, error) {
-	query := `SELECT e.id, e.uuid, e.business_id, e.name, e.slug, COALESCE(e.description, ''), e.start_date, e.end_date, e.status, e.total_photo_limit, e.guest_photo_limit, e.allow_downloads, e.created_at, e.updated_at, COALESCE(p.cnt, 0) as photo_count FROM events e LEFT JOIN (SELECT event_id, COUNT(*) as cnt FROM photos WHERE status = 'active' GROUP BY event_id) p ON e.id = p.event_id WHERE e.business_id = $1 AND e.status = 'active' ORDER BY e.created_at DESC LIMIT $2 OFFSET $3`
+func (r *EventRepo) GetByBusinessID(ctx context.Context, businessID string, limit, offset int) ([]model.Event, error) {
+	query := `SELECT e.id, e.business_id, e.name, e.slug, COALESCE(e.description, ''), e.start_date, e.end_date, e.status, e.total_photo_limit, e.guest_photo_limit, e.allow_downloads, e.created_at, e.updated_at, COALESCE(p.cnt, 0) as photo_count FROM events e LEFT JOIN (SELECT event_id, COUNT(*) as cnt FROM photos WHERE status = 'active' GROUP BY event_id) p ON e.id = p.event_id WHERE e.business_id = $1 AND e.status = 'active' ORDER BY e.created_at DESC LIMIT $2 OFFSET $3`
 	rows, err := r.db.pool.Query(ctx, query, businessID, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("fetching events: %w", err)
@@ -356,7 +352,7 @@ func (r *EventRepo) GetByBusinessID(ctx context.Context, businessID int64, limit
 	var events []model.Event
 	for rows.Next() {
 		var event model.Event
-		if err := rows.Scan(&event.ID, &event.UUID, &event.BusinessID, &event.Name, &event.Slug, &event.Description, &event.StartDate, &event.EndDate, &event.Status, &event.TotalPhotoLimit, &event.GuestPhotoLimit, &event.AllowDownloads, &event.CreatedAt, &event.UpdatedAt, &event.PhotoCount); err != nil {
+		if err := rows.Scan(&event.ID, &event.BusinessID, &event.Name, &event.Slug, &event.Description, &event.StartDate, &event.EndDate, &event.Status, &event.TotalPhotoLimit, &event.GuestPhotoLimit, &event.AllowDownloads, &event.CreatedAt, &event.UpdatedAt, &event.PhotoCount); err != nil {
 			return nil, err
 		}
 		events = append(events, event)
@@ -365,7 +361,7 @@ func (r *EventRepo) GetByBusinessID(ctx context.Context, businessID int64, limit
 }
 
 func (r *EventRepo) GetAll(ctx context.Context, limit, offset int) ([]model.Event, error) {
-	query := `SELECT e.id, e.uuid, e.business_id, e.name, e.slug, COALESCE(e.description, ''), e.start_date, e.end_date, e.status, e.total_photo_limit, e.guest_photo_limit, e.allow_downloads, e.created_at, e.updated_at, COALESCE(p.cnt, 0) as photo_count FROM events e LEFT JOIN (SELECT event_id, COUNT(*) as cnt FROM photos WHERE status = 'active' GROUP BY event_id) p ON e.id = p.event_id ORDER BY e.created_at DESC LIMIT $1 OFFSET $2`
+	query := `SELECT e.id, e.business_id, e.name, e.slug, COALESCE(e.description, ''), e.start_date, e.end_date, e.status, e.total_photo_limit, e.guest_photo_limit, e.allow_downloads, e.created_at, e.updated_at, COALESCE(p.cnt, 0) as photo_count FROM events e LEFT JOIN (SELECT event_id, COUNT(*) as cnt FROM photos WHERE status = 'active' GROUP BY event_id) p ON e.id = p.event_id ORDER BY e.created_at DESC LIMIT $1 OFFSET $2`
 	rows, err := r.db.pool.Query(ctx, query, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("fetching events: %w", err)
@@ -375,7 +371,7 @@ func (r *EventRepo) GetAll(ctx context.Context, limit, offset int) ([]model.Even
 	var events []model.Event
 	for rows.Next() {
 		var event model.Event
-		if err := rows.Scan(&event.ID, &event.UUID, &event.BusinessID, &event.Name, &event.Slug, &event.Description, &event.StartDate, &event.EndDate, &event.Status, &event.TotalPhotoLimit, &event.GuestPhotoLimit, &event.AllowDownloads, &event.CreatedAt, &event.UpdatedAt, &event.PhotoCount); err != nil {
+		if err := rows.Scan(&event.ID, &event.BusinessID, &event.Name, &event.Slug, &event.Description, &event.StartDate, &event.EndDate, &event.Status, &event.TotalPhotoLimit, &event.GuestPhotoLimit, &event.AllowDownloads, &event.CreatedAt, &event.UpdatedAt, &event.PhotoCount); err != nil {
 			return nil, err
 		}
 		events = append(events, event)
@@ -389,7 +385,7 @@ func (r *EventRepo) Count(ctx context.Context) (int, error) {
 	return count, err
 }
 
-func (r *EventRepo) CountActive(ctx context.Context, businessID int64) (int, error) {
+func (r *EventRepo) CountActive(ctx context.Context, businessID string) (int, error) {
 	var count int
 	err := r.db.pool.QueryRow(ctx, `SELECT COUNT(*) FROM events WHERE business_id = $1 AND status = 'active'`, businessID).Scan(&count)
 	return count, err
@@ -401,7 +397,7 @@ func (r *EventRepo) Update(ctx context.Context, event *model.Event) error {
 	return err
 }
 
-func (r *EventRepo) Close(ctx context.Context, id int64) error {
+func (r *EventRepo) Close(ctx context.Context, id string) error {
 	_, err := r.db.pool.Exec(ctx, `UPDATE events SET status = 'closed', updated_at = NOW() WHERE id = $1`, id)
 	return err
 }
@@ -420,7 +416,7 @@ func (r *GuestRepo) Create(ctx context.Context, guest *model.Guest) (*model.Gues
 	return guest, nil
 }
 
-func (r *GuestRepo) GetByTokenHash(ctx context.Context, eventID int64, tokenHash string) (*model.Guest, error) {
+func (r *GuestRepo) GetByTokenHash(ctx context.Context, eventID, tokenHash string) (*model.Guest, error) {
 	query := `SELECT id, event_id, guest_token_hash, name, photo_count, created_at FROM guests WHERE event_id = $1 AND guest_token_hash = $2`
 	var guest model.Guest
 	err := r.db.pool.QueryRow(ctx, query, eventID, tokenHash).Scan(
@@ -435,23 +431,23 @@ func (r *GuestRepo) GetByTokenHash(ctx context.Context, eventID int64, tokenHash
 	return &guest, nil
 }
 
-func (r *GuestRepo) IncrementPhotoCount(ctx context.Context, guestID int64) error {
+func (r *GuestRepo) IncrementPhotoCount(ctx context.Context, guestID string) error {
 	_, err := r.db.pool.Exec(ctx, `UPDATE guests SET photo_count = photo_count + 1 WHERE id = $1`, guestID)
 	return err
 }
 
-func (r *GuestRepo) DecrementPhotoCount(ctx context.Context, guestID int64) error {
+func (r *GuestRepo) DecrementPhotoCount(ctx context.Context, guestID string) error {
 	_, err := r.db.pool.Exec(ctx, `UPDATE guests SET photo_count = GREATEST(0, photo_count - 1) WHERE id = $1`, guestID)
 	return err
 }
 
-func (r *GuestRepo) CountByEvent(ctx context.Context, eventID int64) (int, error) {
+func (r *GuestRepo) CountByEvent(ctx context.Context, eventID string) (int, error) {
 	var count int
 	err := r.db.pool.QueryRow(ctx, `SELECT COUNT(*) FROM guests WHERE event_id = $1`, eventID).Scan(&count)
 	return count, err
 }
 
-func (r *GuestRepo) GetPhotoCount(ctx context.Context, guestID int64) (int, error) {
+func (r *GuestRepo) GetPhotoCount(ctx context.Context, guestID string) (int, error) {
 	var count int
 	err := r.db.pool.QueryRow(ctx, `SELECT photo_count FROM guests WHERE id = $1`, guestID).Scan(&count)
 	return count, err
@@ -471,7 +467,7 @@ func (r *PhotoRepo) Create(ctx context.Context, photo *model.Photo) (*model.Phot
 	return photo, nil
 }
 
-func (r *PhotoRepo) GetByID(ctx context.Context, id int64) (*model.Photo, error) {
+func (r *PhotoRepo) GetByID(ctx context.Context, id string) (*model.Photo, error) {
 	query := `SELECT id, event_id, guest_id, storage_path, thumbnail_path, url, thumbnail_url, COALESCE(immich_asset_id, ''), original_filename, file_size_bytes, mime_type, width, height, status, created_at FROM photos WHERE id = $1`
 	var photo model.Photo
 	err := r.db.pool.QueryRow(ctx, query, id).Scan(&photo.ID, &photo.EventID, &photo.GuestID, &photo.StoragePath, &photo.ThumbnailPath, &photo.URL, &photo.ThumbnailURL, &photo.ImmichAssetID, &photo.OriginalFilename, &photo.FileSizeBytes, &photo.MimeType, &photo.Width, &photo.Height, &photo.Status, &photo.CreatedAt)
@@ -481,7 +477,7 @@ func (r *PhotoRepo) GetByID(ctx context.Context, id int64) (*model.Photo, error)
 	return &photo, nil
 }
 
-func (r *PhotoRepo) GetByGuest(ctx context.Context, guestID int64, limit, offset int) ([]model.Photo, error) {
+func (r *PhotoRepo) GetByGuest(ctx context.Context, guestID string, limit, offset int) ([]model.Photo, error) {
 	query := `SELECT id, event_id, guest_id, storage_path, thumbnail_path, url, thumbnail_url, COALESCE(immich_asset_id, ''), original_filename, file_size_bytes, mime_type, width, height, status, created_at FROM photos WHERE guest_id = $1 AND status = 'active' ORDER BY created_at DESC LIMIT $2 OFFSET $3`
 	rows, err := r.db.pool.Query(ctx, query, guestID, limit, offset)
 	if err != nil {
@@ -500,17 +496,7 @@ func (r *PhotoRepo) GetByGuest(ctx context.Context, guestID int64, limit, offset
 	return photos, nil
 }
 
-func (r *PhotoRepo) GetByUUID(ctx context.Context, uuid string) (*model.Photo, error) {
-	query := `SELECT id, event_id, guest_id, storage_path, thumbnail_path, url, thumbnail_url, COALESCE(immich_asset_id, ''), original_filename, file_size_bytes, mime_type, width, height, status, created_at FROM photos WHERE uuid = $1`
-	var photo model.Photo
-	err := r.db.pool.QueryRow(ctx, query, uuid).Scan(&photo.ID, &photo.EventID, &photo.GuestID, &photo.StoragePath, &photo.ThumbnailPath, &photo.URL, &photo.ThumbnailURL, &photo.ImmichAssetID, &photo.OriginalFilename, &photo.FileSizeBytes, &photo.MimeType, &photo.Width, &photo.Height, &photo.Status, &photo.CreatedAt)
-	if err != nil {
-		return nil, fmt.Errorf("fetching photo by uuid: %w", err)
-	}
-	return &photo, nil
-}
-
-func (r *PhotoRepo) GetByEvent(ctx context.Context, eventID int64, limit, offset int) ([]model.Photo, error) {
+func (r *PhotoRepo) GetByEvent(ctx context.Context, eventID string, limit, offset int) ([]model.Photo, error) {
 	query := `SELECT id, event_id, guest_id, storage_path, thumbnail_path, url, thumbnail_url, COALESCE(immich_asset_id, ''), original_filename, file_size_bytes, mime_type, width, height, status, created_at FROM photos WHERE event_id = $1 AND status = 'active' ORDER BY created_at DESC LIMIT $2 OFFSET $3`
 	rows, err := r.db.pool.Query(ctx, query, eventID, limit, offset)
 	if err != nil {
@@ -529,7 +515,7 @@ func (r *PhotoRepo) GetByEvent(ctx context.Context, eventID int64, limit, offset
 	return photos, nil
 }
 
-func (r *PhotoRepo) SearchByEvent(ctx context.Context, eventID int64, keyword string, limit, offset int) ([]model.Photo, error) {
+func (r *PhotoRepo) SearchByEvent(ctx context.Context, eventID, keyword string, limit, offset int) ([]model.Photo, error) {
 	query := `SELECT id, event_id, guest_id, storage_path, thumbnail_path, url, thumbnail_url, COALESCE(immich_asset_id, ''), original_filename, file_size_bytes, mime_type, width, height, status, created_at FROM photos WHERE event_id = $1 AND status = 'active' AND (original_filename ILIKE $2 OR EXISTS (SELECT 1 FROM guests g WHERE g.id = photos.guest_id AND g.name ILIKE $2)) ORDER BY created_at DESC LIMIT $3 OFFSET $4`
 	rows, err := r.db.pool.Query(ctx, query, eventID, "%"+keyword+"%", limit, offset)
 	if err != nil {
@@ -548,7 +534,7 @@ func (r *PhotoRepo) SearchByEvent(ctx context.Context, eventID int64, keyword st
 	return photos, nil
 }
 
-func (r *PhotoRepo) CountByEvent(ctx context.Context, eventID int64) (int, error) {
+func (r *PhotoRepo) CountByEvent(ctx context.Context, eventID string) (int, error) {
 	var count int
 	err := r.db.pool.QueryRow(ctx, `SELECT COUNT(*) FROM photos WHERE event_id = $1 AND status = 'active'`, eventID).Scan(&count)
 	return count, err
@@ -560,7 +546,7 @@ func (r *PhotoRepo) CountAll(ctx context.Context) (int, error) {
 	return count, err
 }
 
-func (r *PhotoRepo) CountByBusiness(ctx context.Context, businessID int64) (int, error) {
+func (r *PhotoRepo) CountByBusiness(ctx context.Context, businessID string) (int, error) {
 	var count int
 	err := r.db.pool.QueryRow(ctx, `
 		SELECT COUNT(*) FROM photos p
@@ -570,12 +556,12 @@ func (r *PhotoRepo) CountByBusiness(ctx context.Context, businessID int64) (int,
 	return count, err
 }
 
-func (r *PhotoRepo) Delete(ctx context.Context, id int64) error {
+func (r *PhotoRepo) Delete(ctx context.Context, id string) error {
 	_, err := r.db.pool.Exec(ctx, `UPDATE photos SET status = 'deleted' WHERE id = $1`, id)
 	return err
 }
 
-func (r *PhotoRepo) GetEventPhotoCounts(ctx context.Context, businessID int64) ([]model.EventPhotoCount, error) {
+func (r *PhotoRepo) GetEventPhotoCounts(ctx context.Context, businessID string) ([]model.EventPhotoCount, error) {
 	query := `
 		SELECT e.id, e.name, COALESCE(p.cnt, 0), COALESCE(g.cnt, 0)
 		FROM events e
@@ -601,10 +587,10 @@ func (r *PhotoRepo) GetEventPhotoCounts(ctx context.Context, businessID int64) (
 	return results, nil
 }
 
-func (r *PhotoRepo) SumStorageUsed(ctx context.Context, businessID int64) (float64, error) {
+func (r *PhotoRepo) SumStorageUsed(ctx context.Context, businessID string) (float64, error) {
 	var totalBytes *int64
 	err := r.db.pool.QueryRow(ctx, `
-		SELECT SUM(p.file_size_bytes) 
+		SELECT SUM(p.file_size_bytes)
 		FROM photos p
 		JOIN events e ON p.event_id = e.id
 		WHERE e.business_id = $1 AND p.status = 'active'

@@ -35,10 +35,10 @@ func (s *Service) CheckPassword(password, hash string) bool {
 }
 
 type Claims struct {
-	UserID     int64  `json:"user_id"`
+	UserID     string `json:"user_id"`
 	Email      string `json:"email"`
 	Role       string `json:"role"`
-	BusinessID int64  `json:"business_id,omitempty"`
+	BusinessID string `json:"business_id,omitempty"`
 	jwt.RegisteredClaims
 }
 

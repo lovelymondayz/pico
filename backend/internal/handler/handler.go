@@ -28,13 +28,6 @@ func New(services *service.Services, cfg *config.Config) *Handler {
 	}
 }
 
-func (h *Handler) Debug(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"status": "ok",
-		"time":   time.Now().UTC(),
-	})
-}
-
 // --- Auth ---
 
 type RegisterRequest struct {
@@ -196,7 +189,6 @@ func (h *Handler) ListMyPhotos(c *gin.Context) {
 		return
 	}
 
-	// Get guest token from header or query
 	guestToken := c.GetHeader("X-Guest-Token")
 	if guestToken == "" {
 		guestToken = c.Query("token")
@@ -244,15 +236,15 @@ func (h *Handler) StreamPhotos(c *gin.Context) {
 
 	c.SSEvent("connected", gin.H{"event_id": event.ID})
 
-	lastID := 0
+	lastID := ""
 	for {
 		select {
 		case <-c.Request.Context().Done():
 			return
 		case <-time.After(5 * time.Second):
 			photos, _ := h.services.Photo.GetByEvent(c.Request.Context(), event.ID, 1, 0)
-			if len(photos) > 0 && photos[0].ID > int64(lastID) {
-				lastID = int(photos[0].ID)
+			if len(photos) > 0 && photos[0].ID != lastID {
+				lastID = photos[0].ID
 				c.SSEvent("photo", photos[0])
 				c.Writer.Flush()
 			}
@@ -349,8 +341,7 @@ func (h *Handler) GetPhoto(c *gin.Context) {
 		return
 	}
 
-	photoID, _ := strconv.ParseInt(id, 10, 64)
-	photo, err := h.services.Photo.GetByID(c.Request.Context(), photoID)
+	photo, err := h.services.Photo.GetByID(c.Request.Context(), id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "photo not found"})
 		return
@@ -367,7 +358,7 @@ func (h *Handler) GetPhoto(c *gin.Context) {
 // --- Business Routes ---
 
 func (h *Handler) ListBusinessEvents(c *gin.Context) {
-	userID := c.GetInt64("userID")
+	userID := c.GetString("userID")
 	business, err := h.services.Business.GetByUserID(c.Request.Context(), userID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "business not found"})
@@ -397,7 +388,7 @@ type CreateEventRequest struct {
 }
 
 func (h *Handler) CreateEvent(c *gin.Context) {
-	userID := c.GetInt64("userID")
+	userID := c.GetString("userID")
 	business, err := h.services.Business.GetByUserID(c.Request.Context(), userID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "business not found"})
@@ -435,8 +426,8 @@ func (h *Handler) CreateEvent(c *gin.Context) {
 }
 
 func (h *Handler) GetEventByID(c *gin.Context) {
-	userID := c.GetInt64("userID")
-	eventID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	userID := c.GetString("userID")
+	eventID := c.Param("id")
 
 	event, err := h.services.Event.GetByID(c.Request.Context(), eventID)
 	if err != nil {
@@ -454,9 +445,9 @@ func (h *Handler) GetEventByID(c *gin.Context) {
 }
 
 func (h *Handler) GetEventByUUID(c *gin.Context) {
-	uuid := c.Param("uuid")
+	id := c.Param("uuid")
 
-	event, err := h.services.Event.GetByUUID(c.Request.Context(), uuid)
+	event, err := h.services.Event.GetByID(c.Request.Context(), id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "event not found"})
 		return
@@ -466,8 +457,8 @@ func (h *Handler) GetEventByUUID(c *gin.Context) {
 }
 
 func (h *Handler) UpdateEvent(c *gin.Context) {
-	userID := c.GetInt64("userID")
-	eventID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	userID := c.GetString("userID")
+	eventID := c.Param("id")
 
 	event, err := h.services.Event.GetByID(c.Request.Context(), eventID)
 	if err != nil {
@@ -506,8 +497,8 @@ func (h *Handler) UpdateEvent(c *gin.Context) {
 }
 
 func (h *Handler) CloseEvent(c *gin.Context) {
-	userID := c.GetInt64("userID")
-	eventID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	userID := c.GetString("userID")
+	eventID := c.Param("id")
 
 	event, err := h.services.Event.GetByID(c.Request.Context(), eventID)
 	if err != nil {
@@ -530,8 +521,8 @@ func (h *Handler) CloseEvent(c *gin.Context) {
 }
 
 func (h *Handler) ListEventPhotos(c *gin.Context) {
-	userID := c.GetInt64("userID")
-	eventID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	userID := c.GetString("userID")
+	eventID := c.Param("id")
 
 	event, err := h.services.Event.GetByID(c.Request.Context(), eventID)
 	if err != nil {
@@ -558,8 +549,8 @@ func (h *Handler) ListEventPhotos(c *gin.Context) {
 }
 
 func (h *Handler) DownloadPhotos(c *gin.Context) {
-	userID := c.GetInt64("userID")
-	eventID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	userID := c.GetString("userID")
+	eventID := c.Param("id")
 
 	event, err := h.services.Event.GetByID(c.Request.Context(), eventID)
 	if err != nil {
@@ -589,7 +580,6 @@ func (h *Handler) DownloadPhotos(c *gin.Context) {
 		return
 	}
 
-	// For Immich photos, return JSON with URLs for client-side download
 	type PhotoDownload struct {
 		URL      string `json:"url"`
 		Filename string `json:"filename"`
@@ -614,8 +604,8 @@ func (h *Handler) DownloadPhotos(c *gin.Context) {
 }
 
 func (h *Handler) DownloadPhotosZIP(c *gin.Context) {
-	userID := c.GetInt64("userID")
-	eventID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	userID := c.GetString("userID")
+	eventID := c.Param("id")
 
 	event, err := h.services.Event.GetByID(c.Request.Context(), eventID)
 	if err != nil {
@@ -645,7 +635,6 @@ func (h *Handler) DownloadPhotosZIP(c *gin.Context) {
 		return
 	}
 
-	// Create ZIP in memory
 	var buf bytes.Buffer
 	zipWriter := zip.NewWriter(&buf)
 
@@ -653,7 +642,6 @@ func (h *Handler) DownloadPhotosZIP(c *gin.Context) {
 		if p.ImmichAssetID == "" {
 			continue
 		}
-		// Download from Immich
 		immichStore, ok := h.services.GetStorage().(*storage.ImmichStorage)
 		if !ok {
 			continue
@@ -678,9 +666,9 @@ func (h *Handler) DownloadPhotosZIP(c *gin.Context) {
 }
 
 func (h *Handler) DeletePhoto(c *gin.Context) {
-	userID := c.GetInt64("userID")
-	eventID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
-	photoID, _ := strconv.ParseInt(c.Param("photoID"), 10, 64)
+	userID := c.GetString("userID")
+	eventID := c.Param("id")
+	photoID := c.Param("photoID")
 
 	event, err := h.services.Event.GetByID(c.Request.Context(), eventID)
 	if err != nil {
@@ -707,7 +695,7 @@ func (h *Handler) UploadCoverImage(c *gin.Context) {
 }
 
 func (h *Handler) GenerateQR(c *gin.Context) {
-	eventID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	eventID := c.Param("id")
 	event, err := h.services.Event.GetByID(c.Request.Context(), eventID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "event not found"})
@@ -727,7 +715,7 @@ func (h *Handler) GenerateQR(c *gin.Context) {
 }
 
 func (h *Handler) BusinessStats(c *gin.Context) {
-	userID := c.GetInt64("userID")
+	userID := c.GetString("userID")
 	business, err := h.services.Business.GetByUserID(c.Request.Context(), userID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "business not found"})
@@ -791,7 +779,7 @@ func (h *Handler) CreatePlan(c *gin.Context) {
 }
 
 func (h *Handler) UpdatePlan(c *gin.Context) {
-	planID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	planID := c.Param("id")
 	plan, err := h.services.Admin.GetPlanByID(c.Request.Context(), planID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "plan not found"})
@@ -821,7 +809,7 @@ func (h *Handler) UpdatePlan(c *gin.Context) {
 }
 
 func (h *Handler) DeletePlan(c *gin.Context) {
-	planID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	planID := c.Param("id")
 	if err := h.services.Admin.DeletePlan(c.Request.Context(), planID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete plan"})
 		return
@@ -865,7 +853,7 @@ func (h *Handler) AdminStats(c *gin.Context) {
 }
 
 func (h *Handler) SuspendBusiness(c *gin.Context) {
-	businessID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	businessID := c.Param("id")
 
 	var req struct {
 		Suspended bool `json:"suspended"`
@@ -888,79 +876,42 @@ func (h *Handler) SuspendBusiness(c *gin.Context) {
 func (h *Handler) ServePhoto(c *gin.Context) {
 	idParam := c.Param("id")
 
-	// Try to parse as integer first (backward compatibility)
-	if id, err := strconv.ParseInt(idParam, 10, 64); err == nil {
-		photo, err := h.services.Photo.GetByID(c.Request.Context(), id)
-		if err == nil {
-			if photo.ImmichAssetID != "" {
-				data, err := h.services.GetStorage().(*storage.ImmichStorage).ReadFile(photo.ImmichAssetID)
-				if err == nil {
-					c.Data(http.StatusOK, photo.MimeType, data)
-					return
-				}
+	// Try UUID first
+	photo, err := h.services.Photo.GetByID(c.Request.Context(), idParam)
+	if err == nil {
+		if photo.ImmichAssetID != "" {
+			data, err := h.services.GetStorage().(*storage.ImmichStorage).ReadFile(photo.ImmichAssetID)
+			if err == nil {
+				c.Data(http.StatusOK, photo.MimeType, data)
+				return
 			}
-			fullPath := h.services.GetStorage().GetFullPath(photo.StoragePath)
-			c.File(fullPath)
-			return
 		}
-	}
-
-	// Try to find by UUID
-	photo, err := h.services.Photo.GetByUUID(c.Request.Context(), idParam)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "photo not found"})
+		fullPath := h.services.GetStorage().GetFullPath(photo.StoragePath)
+		c.File(fullPath)
 		return
 	}
 
-	if photo.ImmichAssetID != "" {
-		data, err := h.services.GetStorage().(*storage.ImmichStorage).ReadFile(photo.ImmichAssetID)
-		if err == nil {
-			c.Data(http.StatusOK, photo.MimeType, data)
-			return
-		}
-	}
-
-	fullPath := h.services.GetStorage().GetFullPath(photo.StoragePath)
-	c.File(fullPath)
+	c.JSON(http.StatusNotFound, gin.H{"error": "photo not found"})
 }
 
 func (h *Handler) ServeThumbnail(c *gin.Context) {
 	idParam := c.Param("id")
 
-	// Try to parse as integer first (backward compatibility)
-	if id, err := strconv.ParseInt(idParam, 10, 64); err == nil {
-		photo, err := h.services.Photo.GetByID(c.Request.Context(), id)
-		if err == nil {
-			if photo.ImmichAssetID != "" {
-				data, err := h.services.GetStorage().(*storage.ImmichStorage).ReadThumbnail(photo.ImmichAssetID)
-				if err == nil {
-					c.Data(http.StatusOK, "image/jpeg", data)
-					return
-				}
+	photo, err := h.services.Photo.GetByID(c.Request.Context(), idParam)
+	if err == nil {
+		if photo.ImmichAssetID != "" {
+			data, err := h.services.GetStorage().(*storage.ImmichStorage).ReadThumbnail(photo.ImmichAssetID)
+			if err == nil {
+				c.Data(http.StatusOK, "image/jpeg", data)
+				return
 			}
-			fullPath := h.services.GetStorage().GetFullPath(photo.ThumbnailPath)
-			c.File(fullPath)
-			return
 		}
-	}
-
-	// Try to find by UUID
-	photo, err := h.services.Photo.GetByUUID(c.Request.Context(), idParam)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "photo not found"})
+		fullPath := h.services.GetStorage().GetFullPath(photo.ThumbnailPath)
+		c.File(fullPath)
 		return
 	}
 
-	if photo.ImmichAssetID != "" {
-		data, err := h.services.GetStorage().(*storage.ImmichStorage).ReadThumbnail(photo.ImmichAssetID)
-		if err == nil {
-			c.Data(http.StatusOK, "image/jpeg", data)
-			return
-		}
-	}
-
-	fullPath := h.services.GetStorage().GetFullPath(photo.ThumbnailPath)
-	c.File(fullPath)
+	c.JSON(http.StatusNotFound, gin.H{"error": "photo not found"})
 }
 
 func generateSlug(name string) string {

@@ -98,11 +98,11 @@ func (bs *BusinessService) Register(ctx context.Context, email, password, name, 
 	return user, biz, nil
 }
 
-func (bs *BusinessService) GetByUserID(ctx context.Context, userID int64) (*model.Business, error) {
+func (bs *BusinessService) GetByUserID(ctx context.Context, userID string) (*model.Business, error) {
 	return bs.s.repo.Businesses.GetByUserID(ctx, userID)
 }
 
-func (bs *BusinessService) GetStats(ctx context.Context, businessID int64) (*model.DashboardStats, error) {
+func (bs *BusinessService) GetStats(ctx context.Context, businessID string) (*model.DashboardStats, error) {
 	activeEvents, _ := bs.s.repo.Events.CountActive(ctx, businessID)
 	totalPhotos, _ := bs.s.repo.Photos.CountByBusiness(ctx, businessID)
 	storageMB, _ := bs.s.repo.Photos.SumStorageUsed(ctx, businessID)
@@ -146,7 +146,7 @@ type EventService struct {
 	s *Services
 }
 
-func (es *EventService) Create(ctx context.Context, businessID int64, name, slug, description string, startDate, endDate time.Time, allowDownloads bool, totalPhotoLimit, guestPhotoLimit int) (*model.Event, error) {
+func (es *EventService) Create(ctx context.Context, businessID, name, slug, description string, startDate, endDate time.Time, allowDownloads bool, totalPhotoLimit, guestPhotoLimit int) (*model.Event, error) {
 	activeCount, err := es.s.repo.Events.CountActive(ctx, businessID)
 	if err != nil {
 		return nil, err
@@ -173,7 +173,6 @@ func (es *EventService) Create(ctx context.Context, businessID int64, name, slug
 		guestPhotoLimit = plan.PhotosPerGuest
 	}
 
-	// Validate dates are not in the past
 	now := time.Now()
 	if startDate.Before(now.Truncate(24 * time.Hour)) {
 		return nil, fmt.Errorf("start date cannot be in the past")
@@ -203,9 +202,7 @@ func (es *EventService) Create(ctx context.Context, businessID int64, name, slug
 	// Create Immich album for this event
 	if immichStore, ok := es.s.storage.(*storage.ImmichStorage); ok {
 		business, err := es.s.repo.Businesses.GetByID(ctx, businessID)
-		if err != nil {
-			// Continue without album if business lookup fails
-		} else {
+		if err == nil {
 			albumName := fmt.Sprintf("%s - %s", business.Name, name)
 			albumID, err := immichStore.CreateAlbum(albumName, description)
 			if err == nil && albumID != "" {
@@ -218,19 +215,15 @@ func (es *EventService) Create(ctx context.Context, businessID int64, name, slug
 	return event, nil
 }
 
-func (es *EventService) GetByID(ctx context.Context, id int64) (*model.Event, error) {
+func (es *EventService) GetByID(ctx context.Context, id string) (*model.Event, error) {
 	return es.s.repo.Events.GetByID(ctx, id)
-}
-
-func (es *EventService) GetByUUID(ctx context.Context, uuid string) (*model.Event, error) {
-	return es.s.repo.Events.GetByUUID(ctx, uuid)
 }
 
 func (es *EventService) GetBySlug(ctx context.Context, slug string) (*model.Event, error) {
 	return es.s.repo.Events.GetBySlug(ctx, slug)
 }
 
-func (es *EventService) GetByBusinessID(ctx context.Context, businessID int64, limit, offset int) ([]model.Event, error) {
+func (es *EventService) GetByBusinessID(ctx context.Context, businessID string, limit, offset int) ([]model.Event, error) {
 	return es.s.repo.Events.GetByBusinessID(ctx, businessID, limit, offset)
 }
 
@@ -238,7 +231,7 @@ func (es *EventService) Update(ctx context.Context, event *model.Event) error {
 	return es.s.repo.Events.Update(ctx, event)
 }
 
-func (es *EventService) Close(ctx context.Context, id int64) error {
+func (es *EventService) Close(ctx context.Context, id string) error {
 	return es.s.repo.Events.Close(ctx, id)
 }
 
@@ -247,7 +240,7 @@ type GuestService struct {
 	s *Services
 }
 
-func (gs *GuestService) RegisterOrGet(ctx context.Context, eventID int64, name string) (*model.Guest, string, error) {
+func (gs *GuestService) RegisterOrGet(ctx context.Context, eventID, name string) (*model.Guest, string, error) {
 	token := uuid.New().String()
 	tokenHash := auth.HashGuestToken(token)
 
@@ -270,16 +263,16 @@ func (gs *GuestService) RegisterOrGet(ctx context.Context, eventID int64, name s
 	return created, token, nil
 }
 
-func (gs *GuestService) GetByToken(ctx context.Context, eventID int64, token string) (*model.Guest, error) {
+func (gs *GuestService) GetByToken(ctx context.Context, eventID, token string) (*model.Guest, error) {
 	tokenHash := auth.HashGuestToken(token)
 	return gs.s.repo.Guests.GetByTokenHash(ctx, eventID, tokenHash)
 }
 
-func (gs *GuestService) IncrementPhotoCount(ctx context.Context, guestID int64) error {
+func (gs *GuestService) IncrementPhotoCount(ctx context.Context, guestID string) error {
 	return gs.s.repo.Guests.IncrementPhotoCount(ctx, guestID)
 }
 
-func (gs *GuestService) GetPhotoCount(ctx context.Context, guestID int64) (int, error) {
+func (gs *GuestService) GetPhotoCount(ctx context.Context, guestID string) (int, error) {
 	return gs.s.repo.Guests.GetPhotoCount(ctx, guestID)
 }
 
@@ -288,7 +281,7 @@ type PhotoService struct {
 	s *Services
 }
 
-func (ps *PhotoService) Upload(ctx context.Context, eventID, guestID int64, fileBytes []byte, filename, contentType string) (*model.Photo, error) {
+func (ps *PhotoService) Upload(ctx context.Context, eventID, guestID string, fileBytes []byte, filename, contentType string) (*model.Photo, error) {
 	if err := ps.s.photoProc.ValidateFile(int64(len(fileBytes)), contentType); err != nil {
 		return nil, err
 	}
@@ -307,7 +300,6 @@ func (ps *PhotoService) Upload(ctx context.Context, eventID, guestID int64, file
 	var assetID, photoPath, thumbPath string
 
 	if immichStore, ok := ps.s.storage.(*storage.ImmichStorage); ok {
-		// Immich storage: upload to Immich
 		file := storage.BytesToMultipartFile(processed)
 		assetID, err = immichStore.Save(file, filename)
 		if err != nil {
@@ -316,9 +308,8 @@ func (ps *PhotoService) Upload(ctx context.Context, eventID, guestID int64, file
 		photoPath = assetID
 		thumbPath = assetID
 	} else {
-		// Local storage fallback
-		photoPath = fmt.Sprintf("%d/%s.jpg", eventID, id)
-		thumbPath = fmt.Sprintf("%d/%s_thumb.jpg", eventID, id)
+		photoPath = fmt.Sprintf("%s/%s.jpg", eventID, id)
+		thumbPath = fmt.Sprintf("%s/%s_thumb.jpg", eventID, id)
 		fullPhotoPath := ps.s.storage.GetFullPath(photoPath)
 		fullThumbPath := ps.s.storage.GetFullPath(thumbPath)
 
@@ -349,14 +340,12 @@ func (ps *PhotoService) Upload(ctx context.Context, eventID, guestID int64, file
 	return ps.s.repo.Photos.Create(ctx, photo)
 }
 
-func (ps *PhotoService) UploadWithAlbum(ctx context.Context, eventID int64, guestID int64, fileBytes []byte, filename, contentType string) (*model.Photo, error) {
-	// Upload the photo
+func (ps *PhotoService) UploadWithAlbum(ctx context.Context, eventID, guestID string, fileBytes []byte, filename, contentType string) (*model.Photo, error) {
 	photo, err := ps.Upload(ctx, eventID, guestID, fileBytes, filename, contentType)
 	if err != nil {
 		return nil, err
 	}
 
-	// Add to Immich album
 	if event, err := ps.s.repo.Events.GetByID(ctx, eventID); err == nil && event.ImmichAlbumID != "" {
 		if immichStore, ok := ps.s.storage.(*storage.ImmichStorage); ok {
 			immichStore.AddToAlbum(photo.ImmichAssetID, event.ImmichAlbumID)
@@ -366,27 +355,23 @@ func (ps *PhotoService) UploadWithAlbum(ctx context.Context, eventID int64, gues
 	return photo, nil
 }
 
-func (ps *PhotoService) GetByEvent(ctx context.Context, eventID int64, limit, offset int) ([]model.Photo, error) {
+func (ps *PhotoService) GetByEvent(ctx context.Context, eventID string, limit, offset int) ([]model.Photo, error) {
 	return ps.s.repo.Photos.GetByEvent(ctx, eventID, limit, offset)
 }
 
-func (ps *PhotoService) CountByEvent(ctx context.Context, eventID int64) (int, error) {
+func (ps *PhotoService) CountByEvent(ctx context.Context, eventID string) (int, error) {
 	return ps.s.repo.Photos.CountByEvent(ctx, eventID)
 }
 
-func (ps *PhotoService) GetByID(ctx context.Context, id int64) (*model.Photo, error) {
+func (ps *PhotoService) GetByID(ctx context.Context, id string) (*model.Photo, error) {
 	return ps.s.repo.Photos.GetByID(ctx, id)
 }
 
-func (ps *PhotoService) GetByUUID(ctx context.Context, uuid string) (*model.Photo, error) {
-	return ps.s.repo.Photos.GetByUUID(ctx, uuid)
-}
-
-func (ps *PhotoService) GetByGuest(ctx context.Context, guestID int64, limit, offset int) ([]model.Photo, error) {
+func (ps *PhotoService) GetByGuest(ctx context.Context, guestID string, limit, offset int) ([]model.Photo, error) {
 	return ps.s.repo.Photos.GetByGuest(ctx, guestID, limit, offset)
 }
 
-func (ps *PhotoService) Delete(ctx context.Context, photoID, businessID int64) error {
+func (ps *PhotoService) Delete(ctx context.Context, photoID, businessID string) error {
 	photo, err := ps.s.repo.Photos.GetByID(ctx, photoID)
 	if err != nil {
 		return fmt.Errorf("photo not found")
@@ -401,7 +386,6 @@ func (ps *PhotoService) Delete(ctx context.Context, photoID, businessID int64) e
 		return fmt.Errorf("access denied")
 	}
 
-	// Delete from Immich if applicable
 	if photo.ImmichAssetID != "" {
 		if immichStore, ok := ps.s.storage.(*storage.ImmichStorage); ok {
 			if err := immichStore.Delete(photo.ImmichAssetID); err != nil {
@@ -410,13 +394,11 @@ func (ps *PhotoService) Delete(ctx context.Context, photoID, businessID int64) e
 		}
 	}
 
-	// Soft delete in DB
 	if err := ps.s.repo.Photos.Delete(ctx, photoID); err != nil {
 		return fmt.Errorf("deleting photo: %w", err)
 	}
 
-	// Decrement guest photo count
-	if photo.GuestID > 0 {
+	if photo.GuestID != "" {
 		if err := ps.s.repo.Guests.DecrementPhotoCount(ctx, photo.GuestID); err != nil {
 			// Log but don't fail
 		}
@@ -425,7 +407,7 @@ func (ps *PhotoService) Delete(ctx context.Context, photoID, businessID int64) e
 	return nil
 }
 
-func (ps *PhotoService) SearchByEvent(ctx context.Context, eventID int64, keyword string, limit, offset int) ([]model.Photo, error) {
+func (ps *PhotoService) SearchByEvent(ctx context.Context, eventID, keyword string, limit, offset int) ([]model.Photo, error) {
 	return ps.s.repo.Photos.SearchByEvent(ctx, eventID, keyword, limit, offset)
 }
 
@@ -445,10 +427,7 @@ func (as *AdminService) GetStats(ctx context.Context) (*model.AdminStats, error)
 	totalStorage, _ := as.s.repo.Photos.SumTotalStorage(ctx)
 	activePlans, _ := as.s.repo.Plans.Count(ctx)
 
-	// Get recent uploads (last 7 days)
 	recentUploads, _ := as.s.repo.Photos.GetRecentUploads(ctx, 7)
-
-	// Get top events by photo count
 	topEvents, _ := as.s.repo.Photos.GetTopEvents(ctx, 5)
 
 	return &model.AdminStats{
@@ -474,11 +453,11 @@ func (as *AdminService) UpdatePlan(ctx context.Context, plan *model.Plan) error 
 	return as.s.repo.Plans.Update(ctx, plan)
 }
 
-func (as *AdminService) DeletePlan(ctx context.Context, id int64) error {
+func (as *AdminService) DeletePlan(ctx context.Context, id string) error {
 	return as.s.repo.Plans.Delete(ctx, id)
 }
 
-func (as *AdminService) GetPlanByID(ctx context.Context, id int64) (*model.Plan, error) {
+func (as *AdminService) GetPlanByID(ctx context.Context, id string) (*model.Plan, error) {
 	return as.s.repo.Plans.GetByID(ctx, id)
 }
 
@@ -490,7 +469,7 @@ func (as *AdminService) ListAllEvents(ctx context.Context, limit, offset int) ([
 	return as.s.repo.Events.GetAll(ctx, limit, offset)
 }
 
-func (as *AdminService) SuspendBusiness(ctx context.Context, businessID int64, suspended bool) error {
+func (as *AdminService) SuspendBusiness(ctx context.Context, businessID string, suspended bool) error {
 	return as.s.repo.Businesses.SetSuspended(ctx, businessID, suspended)
 }
 
