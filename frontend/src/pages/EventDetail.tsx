@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { getEventByUUID, listPhotos, closeEvent, downloadPhotos } from '../services/api'
+import { getEventByID, listPhotos, closeEvent, downloadPhotos } from '../services/api'
 
 export default function EventDetail() {
-  const { uuid } = useParams<{ uuid: string }>()
+  const { id } = useParams<{ id: string }>()
   const [event, setEvent] = useState<any>(null)
   const [photos, setPhotos] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -11,12 +11,12 @@ export default function EventDetail() {
   const [showQR, setShowQR] = useState(true)
 
   useEffect(() => {
-    if (uuid) loadData()
-  }, [uuid])
+    if (id) loadData()
+  }, [id])
 
   const loadData = async () => {
     try {
-      const eventRes = await getEventByUUID(uuid!)
+      const eventRes = await getEventByID(id!)
       const ev = eventRes.event || eventRes
       setEvent(ev)
       const photosRes = await listPhotos(ev.slug)

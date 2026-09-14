@@ -46,7 +46,7 @@ export async function getEvent(slug: string) {
   return handleRes(res)
 }
 
-export async function getEventByID(id: number) {
+export async function getEventByID(id: string) {
   const res = await fetch(`${API_BASE}/business/events/${id}`, {
     headers: { ...authHeaders() },
   })
@@ -122,7 +122,7 @@ export async function createEvent(data: {
   return handleRes(res)
 }
 
-export async function updateEvent(id: number, data: any) {
+export async function updateEvent(id: string, data: any) {
   const res = await fetch(`${API_BASE}/business/events/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
@@ -131,7 +131,7 @@ export async function updateEvent(id: number, data: any) {
   return handleRes(res)
 }
 
-export async function deletePhoto(eventId: number, photoId: number) {
+export async function deletePhoto(eventId: string, photoId: string) {
   const res = await fetch(`${API_BASE}/business/events/${eventId}/photos/${photoId}`, {
     method: 'DELETE',
     headers: { ...authHeaders() },
@@ -139,7 +139,7 @@ export async function deletePhoto(eventId: number, photoId: number) {
   return handleRes(res)
 }
 
-export async function uploadCoverImage(eventId: number, file: File) {
+export async function uploadCoverImage(eventId: string, file: File) {
   const formData = new FormData()
   formData.append('cover', file)
   const res = await fetch(`${API_BASE}/business/events/${eventId}/cover`, {
@@ -150,14 +150,14 @@ export async function uploadCoverImage(eventId: number, file: File) {
   return handleRes(res)
 }
 
-export async function downloadPhotos(id: number) {
+export async function downloadPhotos(id: string) {
   const res = await fetch(`${API_BASE}/business/events/${id}/download`, {
     headers: { ...authHeaders() },
   })
   return handleRes(res)
 }
 
-export async function closeEvent(id: number) {
+export async function closeEvent(id: string) {
   const res = await fetch(`${API_BASE}/business/events/${id}`, {
     method: 'DELETE',
     headers: { ...authHeaders() },
@@ -165,11 +165,11 @@ export async function closeEvent(id: number) {
   return handleRes(res)
 }
 
-export async function deleteEvent(id: number) {
+export async function deleteEvent(id: string) {
   return closeEvent(id)
 }
 
-export async function generateQR(id: number) {
+export async function generateQR(id: string) {
   const res = await fetch(`${API_BASE}/business/events/${id}/qr`, {
     headers: { ...authHeaders() },
   })
@@ -199,7 +199,7 @@ export async function listAllBusinesses() {
   return handleRes(res)
 }
 
-export async function suspendBusiness(id: number, suspended: boolean) {
+export async function suspendBusiness(id: string, suspended: boolean) {
   const res = await fetch(`${API_BASE}/admin/businesses/${id}/${suspended ? 'suspend' : 'activate'}`, {
     method: 'PUT',
     headers: { ...authHeaders() },
@@ -223,7 +223,7 @@ export async function createPlan(data: any) {
   return handleRes(res)
 }
 
-export async function updatePlan(id: number, data: any) {
+export async function updatePlan(id: string, data: any) {
   const res = await fetch(`${API_BASE}/admin/plans/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
@@ -232,7 +232,7 @@ export async function updatePlan(id: number, data: any) {
   return handleRes(res)
 }
 
-export async function deletePlan(id: number) {
+export async function deletePlan(id: string) {
   const res = await fetch(`${API_BASE}/admin/plans/${id}`, {
     method: 'DELETE',
     headers: { ...authHeaders() },

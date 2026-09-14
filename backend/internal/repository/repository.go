@@ -188,7 +188,7 @@ func (r *BusinessRepo) GetAll(ctx context.Context, limit, offset int) ([]model.B
 	}
 	defer rows.Close()
 
-	var businesses []model.Business
+	businesses := []model.Business{}
 	for rows.Next() {
 		var biz model.Business
 		if err := rows.Scan(&biz.ID, &biz.UserID, &biz.Name, &biz.Slug, &biz.CreatedAt); err != nil {
@@ -248,7 +248,7 @@ func (r *PlanRepo) GetAll(ctx context.Context) ([]model.Plan, error) {
 	}
 	defer rows.Close()
 
-	var plans []model.Plan
+	plans := []model.Plan{}
 	for rows.Next() {
 		var plan model.Plan
 		if err := rows.Scan(&plan.ID, &plan.Name, &plan.MaxPhotos, &plan.MaxEvents, &plan.PhotosPerGuest, &plan.MaxStorageMB, &plan.Price, &plan.FeaturesJSON, &plan.CreatedAt); err != nil {
@@ -342,14 +342,14 @@ func (r *EventRepo) GetBySlug(ctx context.Context, slug string) (*model.Event, e
 }
 
 func (r *EventRepo) GetByBusinessID(ctx context.Context, businessID string, limit, offset int) ([]model.Event, error) {
-	query := `SELECT e.id, e.business_id, e.name, e.slug, COALESCE(e.description, ''), e.start_date, e.end_date, e.status, e.total_photo_limit, e.guest_photo_limit, e.allow_downloads, e.created_at, e.updated_at, COALESCE(p.cnt, 0) as photo_count FROM events e LEFT JOIN (SELECT event_id, COUNT(*) as cnt FROM photos WHERE status = 'active' GROUP BY event_id) p ON e.id = p.event_id WHERE e.business_id = $1 AND e.status = 'active' ORDER BY e.created_at DESC LIMIT $2 OFFSET $3`
+	query := `SELECT e.id, e.business_id, e.name, e.slug, COALESCE(e.description, ''), e.start_date, e.end_date, e.status, e.total_photo_limit, e.guest_photo_limit, e.allow_downloads, e.created_at, e.updated_at, COALESCE(p.cnt, 0) as photo_count FROM events e LEFT JOIN (SELECT event_id, COUNT(*) as cnt FROM photos WHERE status = 'active' GROUP BY event_id) p ON e.id = p.event_id WHERE e.business_id = $1 ORDER BY e.created_at DESC LIMIT $2 OFFSET $3`
 	rows, err := r.db.pool.Query(ctx, query, businessID, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("fetching events: %w", err)
 	}
 	defer rows.Close()
 
-	var events []model.Event
+	events := []model.Event{}
 	for rows.Next() {
 		var event model.Event
 		if err := rows.Scan(&event.ID, &event.BusinessID, &event.Name, &event.Slug, &event.Description, &event.StartDate, &event.EndDate, &event.Status, &event.TotalPhotoLimit, &event.GuestPhotoLimit, &event.AllowDownloads, &event.CreatedAt, &event.UpdatedAt, &event.PhotoCount); err != nil {
@@ -368,7 +368,7 @@ func (r *EventRepo) GetAll(ctx context.Context, limit, offset int) ([]model.Even
 	}
 	defer rows.Close()
 
-	var events []model.Event
+	events := []model.Event{}
 	for rows.Next() {
 		var event model.Event
 		if err := rows.Scan(&event.ID, &event.BusinessID, &event.Name, &event.Slug, &event.Description, &event.StartDate, &event.EndDate, &event.Status, &event.TotalPhotoLimit, &event.GuestPhotoLimit, &event.AllowDownloads, &event.CreatedAt, &event.UpdatedAt, &event.PhotoCount); err != nil {
@@ -485,7 +485,7 @@ func (r *PhotoRepo) GetByGuest(ctx context.Context, guestID string, limit, offse
 	}
 	defer rows.Close()
 
-	var photos []model.Photo
+	photos := []model.Photo{}
 	for rows.Next() {
 		var photo model.Photo
 		if err := rows.Scan(&photo.ID, &photo.EventID, &photo.GuestID, &photo.StoragePath, &photo.ThumbnailPath, &photo.URL, &photo.ThumbnailURL, &photo.ImmichAssetID, &photo.OriginalFilename, &photo.FileSizeBytes, &photo.MimeType, &photo.Width, &photo.Height, &photo.Status, &photo.CreatedAt); err != nil {
@@ -504,7 +504,7 @@ func (r *PhotoRepo) GetByEvent(ctx context.Context, eventID string, limit, offse
 	}
 	defer rows.Close()
 
-	var photos []model.Photo
+	photos := []model.Photo{}
 	for rows.Next() {
 		var photo model.Photo
 		if err := rows.Scan(&photo.ID, &photo.EventID, &photo.GuestID, &photo.StoragePath, &photo.ThumbnailPath, &photo.URL, &photo.ThumbnailURL, &photo.ImmichAssetID, &photo.OriginalFilename, &photo.FileSizeBytes, &photo.MimeType, &photo.Width, &photo.Height, &photo.Status, &photo.CreatedAt); err != nil {
@@ -523,7 +523,7 @@ func (r *PhotoRepo) SearchByEvent(ctx context.Context, eventID, keyword string, 
 	}
 	defer rows.Close()
 
-	var photos []model.Photo
+	photos := []model.Photo{}
 	for rows.Next() {
 		var photo model.Photo
 		if err := rows.Scan(&photo.ID, &photo.EventID, &photo.GuestID, &photo.StoragePath, &photo.ThumbnailPath, &photo.URL, &photo.ThumbnailURL, &photo.ImmichAssetID, &photo.OriginalFilename, &photo.FileSizeBytes, &photo.MimeType, &photo.Width, &photo.Height, &photo.Status, &photo.CreatedAt); err != nil {
@@ -576,7 +576,7 @@ func (r *PhotoRepo) GetEventPhotoCounts(ctx context.Context, businessID string) 
 	}
 	defer rows.Close()
 
-	var results []model.EventPhotoCount
+	results := []model.EventPhotoCount{}
 	for rows.Next() {
 		var epc model.EventPhotoCount
 		if err := rows.Scan(&epc.EventID, &epc.EventName, &epc.PhotoCount, &epc.GuestCount); err != nil {
@@ -630,7 +630,7 @@ func (r *PhotoRepo) GetRecentUploads(ctx context.Context, days int) ([]model.Upl
 	}
 	defer rows.Close()
 
-	var trends []model.UploadTrend
+	trends := []model.UploadTrend{}
 	for rows.Next() {
 		var t model.UploadTrend
 		if err := rows.Scan(&t.Date, &t.Count); err != nil {
@@ -657,7 +657,7 @@ func (r *PhotoRepo) GetTopEvents(ctx context.Context, limit int) ([]model.EventS
 	}
 	defer rows.Close()
 
-	var events []model.EventSummary
+	events := []model.EventSummary{}
 	for rows.Next() {
 		var e model.EventSummary
 		if err := rows.Scan(&e.EventID, &e.EventName, &e.PhotoCount, &e.BusinessName); err != nil {

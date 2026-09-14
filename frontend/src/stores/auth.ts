@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { login as apiLogin, register as apiRegister } from '../services/api'
 
 interface User {
-  id: number
+  id: string
   email: string
   name: string
   role: 'admin' | 'business'
@@ -10,8 +10,8 @@ interface User {
 }
 
 interface Business {
-  id: number
-  user_id: number
+  id: string
+  user_id: string
   name: string
   slug: string
   logo_url?: string

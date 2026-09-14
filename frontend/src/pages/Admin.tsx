@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { adminStats, listAllBusinesses, suspendBusiness, listPlans, deletePlan } from '../services/api'
 
 interface Business {
-  id: number
+  id: string
   name: string
   email: string
   slug: string
@@ -13,7 +13,7 @@ interface Business {
 }
 
 interface Plan {
-  id: number
+  id: string
   name: string
   price: number
   max_photos: number
@@ -49,7 +49,7 @@ export default function Admin() {
     }
   }
 
-  const handleSuspend = async (id: number, currentStatus: string) => {
+  const handleSuspend = async (id: string, currentStatus: string) => {
     try {
       await suspendBusiness(id, currentStatus !== 'suspended')
       setBusinesses(businesses.map(b => b.id === id ? { ...b, status: currentStatus === 'suspended' ? 'active' : 'suspended' } : b))
@@ -58,7 +58,7 @@ export default function Admin() {
     }
   }
 
-  const handleDeletePlan = async (id: number) => {
+  const handleDeletePlan = async (id: string) => {
     if (!confirm('Delete this plan?')) return
     try {
       await deletePlan(id)

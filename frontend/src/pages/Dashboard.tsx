@@ -4,8 +4,7 @@ import { getBusinessEvents, businessStats, closeEvent } from '../services/api'
 import { useAuthStore } from '../stores/auth'
 
 interface Event {
-  id: number
-  uuid: string
+  id: string
   name: string
   slug: string
   photo_count?: number
@@ -41,7 +40,7 @@ export default function Dashboard() {
     }
   }
 
-  const handleClose = async (id: number) => {
+  const handleClose = async (id: string) => {
     if (!confirm('Are you sure you want to close this event? This cannot be undone.')) return
     try {
       await closeEvent(id)
@@ -94,7 +93,7 @@ export default function Dashboard() {
           {events.map((event) => (
             <div key={event.id} className="px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 hover:bg-surface-alt">
               <div className="flex-1 min-w-0">
-                <Link to={`/events/${event.uuid}`} className="font-medium text-text hover:text-primary truncate block">
+                <Link to={`/events/${event.id}`} className="font-medium text-text hover:text-primary truncate block">
                   {event.name}
                 </Link>
                 <p className="text-sm text-text-muted">{event.photo_count || 0} photos · Created {new Date(event.created_at).toLocaleDateString()}</p>

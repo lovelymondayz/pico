@@ -28,7 +28,7 @@ export default function EventCreate() {
         guest_photo_limit: guestLimit,
         allow_downloads: allowDownloads,
       })
-      navigate(`/events/${res.event.uuid}`)
+      navigate(`/events/${res.event.id}`)
     } catch (err: any) {
       setError(err.message || 'Failed to create event')
     } finally {
